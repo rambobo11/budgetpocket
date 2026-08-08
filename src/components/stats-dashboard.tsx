@@ -17,9 +17,10 @@ import {
   TrendingUp,
   Utensils,
 } from "lucide-react";
-import type { Expense } from "@/lib/types";
+import type { Expense, Income } from "@/lib/types";
 import { nowInAppTz } from "@/lib/date";
 import { fetchExpensesBetween, fetchExpensesForMonth } from "@/lib/expenses";
+import { fetchIncomesForMonth } from "@/lib/incomes";
 import {
   computeExpenseDelta,
   computeExpenseHistory,
@@ -35,21 +36,25 @@ import { PrivacyToggle } from "@/components/privacy-toggle";
 import { usePrivacy } from "@/components/privacy-provider";
 import { AppNav } from "@/components/app-nav";
 import { PageShell } from "@/components/page-shell";
+import { CashflowSankey } from "@/components/cashflow-sankey";
 import { Button } from "@/components/ui/button";
 
 type StatsDashboardProps = {
   initialExpenses: Expense[];
+  initialIncomes: Income[];
   initialMonthIso: string;
 };
 
 export function StatsDashboard({
   initialExpenses,
+  initialIncomes,
   initialMonthIso,
 }: StatsDashboardProps) {
   const [selectedMonth, setSelectedMonth] = useState(
     () => startOfMonth(new Date(initialMonthIso))
   );
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+  const [incomes, setIncomes] = useState<Income[]>(initialIncomes);
   const [historyExpenses, setHistoryExpenses] =
     useState<Expense[]>(initialExpenses);
   const [previousExpenses, setPreviousExpenses] = useState<Expense[]>([]);
@@ -64,8 +69,14 @@ export function StatsDashboard({
     startTransition(async () => {
       if (isSameMonth(selectedMonth, initial)) {
         setExpenses(initialExpenses);
+        setIncomes(initialIncomes);
       } else {
-        setExpenses(await fetchExpensesForMonth(selectedMonth));
+        const [monthExpenses, monthIncomes] = await Promise.all([
+          fetchExpensesForMonth(selectedMonth),
+          fetchIncomesForMonth(selectedMonth),
+        ]);
+        setExpenses(monthExpenses);
+        setIncomes(monthIncomes);
       }
 
       const [history, previous] = await Promise.all([
@@ -75,7 +86,7 @@ export function StatsDashboard({
       setHistoryExpenses(history);
       setPreviousExpenses(previous);
     });
-  }, [selectedMonth, initialExpenses, initialMonthIso]);
+  }, [selectedMonth, initialExpenses, initialIncomes, initialMonthIso]);
 
   const kpis = computeMonthKpis(expenses);
   const previousKpis = computeMonthKpis(previousExpenses);
@@ -237,6 +248,8 @@ export function StatsDashboard({
             )}
           </section>
         </div>
+
+        <CashflowSankey incomes={incomes} expenses={expenses} />
 
         <section className="rounded-[1.75rem] border border-zinc-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
           <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
