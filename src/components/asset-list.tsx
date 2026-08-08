@@ -185,10 +185,9 @@ export function AssetList({
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <div className="relative">
                         <Input
-                          type="number"
+                          type="text"
                           inputMode="decimal"
-                          step="any"
-                          min="0"
+                          autoComplete="off"
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
                           className="h-9 w-36 rounded-lg border-zinc-200 pr-10 dark:border-zinc-700 dark:bg-zinc-950"

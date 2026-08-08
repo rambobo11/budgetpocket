@@ -107,10 +107,9 @@ export function QuickAddForm({
           <div className="relative">
             <Input
               id="amount"
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.01"
-              min="0"
+              autoComplete="off"
               required
               value={amount}
               onChange={(e) => setAmount(e.target.value)}

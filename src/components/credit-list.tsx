@@ -213,10 +213,9 @@ export function CreditList({
                   {isEditing ? (
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Input
-                        type="number"
+                        type="text"
                         inputMode="decimal"
-                        step="0.01"
-                        min="0"
+                        autoComplete="off"
                         value={editAmount}
                         onChange={(e) => setEditAmount(e.target.value)}
                         className="h-9 w-[8.5rem] rounded-lg border-zinc-200 dark:border-zinc-700 dark:bg-zinc-950"

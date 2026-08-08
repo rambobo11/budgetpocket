@@ -16,6 +16,7 @@ import {
   formatCryptoQuantity,
   getCryptoCoin,
 } from "@/lib/crypto";
+import { parseDecimalInput } from "@/lib/number-input";
 import {
   ASSET_TYPES,
   type Asset,
@@ -133,7 +134,8 @@ export function AssetForm({
     event.preventDefault();
     setError(null);
 
-    const parsedQuantity = quantity.trim() === "" ? null : Number(quantity);
+    const parsedQuantity =
+      quantity.trim() === "" ? null : parseDecimalInput(quantity);
 
     if (!assetType) {
       setError("Choisissez un type.");
@@ -163,7 +165,7 @@ export function AssetForm({
         return;
       }
 
-      const parsedValue = Number(value);
+      const parsedValue = parseDecimalInput(value);
       if (value === "" || Number.isNaN(parsedValue) || parsedValue < 0) {
         setError("Indiquez une valeur valide.");
         return;
@@ -196,7 +198,7 @@ export function AssetForm({
             name: name.trim(),
             assetType,
             currency,
-            valueOriginal: Number(value),
+            valueOriginal: parseDecimalInput(value),
             quantity: parsedQuantity,
             coingeckoId: null,
             notes: notes.trim() || null,
@@ -223,18 +225,22 @@ export function AssetForm({
 
   const typeOptions = allowedTypes;
 
+  const parsedQuantityPreview =
+    quantity !== "" ? parseDecimalInput(quantity) : Number.NaN;
+  const parsedValuePreview =
+    value !== "" ? parseDecimalInput(value) : Number.NaN;
+
   const cryptoPreview =
     isCrypto &&
     livePrice != null &&
-    quantity !== "" &&
-    !Number.isNaN(Number(quantity)) &&
-    Number(quantity) > 0
-      ? cryptoValueEur(Number(quantity), livePrice)
+    !Number.isNaN(parsedQuantityPreview) &&
+    parsedQuantityPreview > 0
+      ? cryptoValueEur(parsedQuantityPreview, livePrice)
       : null;
 
   const previewEuro =
-    !isCrypto && value !== "" && !Number.isNaN(Number(value))
-      ? toEuro(Number(value), currency)
+    !isCrypto && !Number.isNaN(parsedValuePreview)
+      ? toEuro(parsedValuePreview, currency)
       : null;
 
   return (
@@ -322,10 +328,9 @@ export function AssetForm({
               <div className="relative">
                 <Input
                   id="asset-quantity"
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="any"
-                  min="0"
+                  autoComplete="off"
                   required
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
@@ -354,7 +359,10 @@ export function AssetForm({
                   </p>
                   {cryptoPreview != null ? (
                     <p className="mt-2 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-                      {formatCryptoQuantity(Number(quantity), selectedCoin.symbol)}{" "}
+                      {formatCryptoQuantity(
+                        parsedQuantityPreview,
+                        selectedCoin.symbol
+                      )}{" "}
                       ≈ {formatEuro(cryptoPreview)}
                     </p>
                   ) : null}
@@ -418,10 +426,9 @@ export function AssetForm({
               <div className="relative">
                 <Input
                   id="asset-value"
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="0.01"
-                  min="0"
+                  autoComplete="off"
                   required
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
@@ -452,10 +459,9 @@ export function AssetForm({
               </Label>
               <Input
                 id="asset-quantity-optional"
-                type="number"
+                type="text"
                 inputMode="decimal"
-                step="any"
-                min="0"
+                autoComplete="off"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 placeholder="Ex. 10 actions…"

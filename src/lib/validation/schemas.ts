@@ -9,10 +9,11 @@ import {
 } from "@/lib/types";
 import { CRYPTO_COINS } from "@/lib/crypto";
 import { isRealBudgetMonth, isRealCalendarDate } from "@/lib/date";
+import { parseDecimalInput } from "@/lib/number-input";
 
 const uuidSchema = z.string().uuid("Identifiant invalide.");
 
-/** Refuse les booléens / strings non numériques (évite true → 1). */
+/** Refuse les booléens / strings non numériques (évite true → 1). Accepte "12,5". */
 const amountPositive = z
   .union([z.number(), z.string()])
   .transform((value, ctx) => {
@@ -20,7 +21,7 @@ const amountPositive = z
       ctx.addIssue({ code: "custom", message: "Montant invalide." });
       return z.NEVER;
     }
-    const n = typeof value === "number" ? value : Number(value);
+    const n = parseDecimalInput(value);
     if (!Number.isFinite(n) || n <= 0) {
       ctx.addIssue({ code: "custom", message: "Montant invalide." });
       return z.NEVER;
@@ -39,7 +40,7 @@ const amountNonNegative = z
       ctx.addIssue({ code: "custom", message: "Valeur invalide." });
       return z.NEVER;
     }
-    const n = typeof value === "number" ? value : Number(value);
+    const n = parseDecimalInput(value);
     if (!Number.isFinite(n) || n < 0) {
       ctx.addIssue({ code: "custom", message: "Valeur invalide." });
       return z.NEVER;
@@ -80,7 +81,7 @@ const cryptoIdSchema = z.enum(
 const quantitySchema = z
   .union([z.number(), z.string()])
   .transform((value, ctx) => {
-    const n = typeof value === "number" ? value : Number(value);
+    const n = parseDecimalInput(value);
     if (!Number.isFinite(n) || n <= 0) {
       ctx.addIssue({ code: "custom", message: "Quantité invalide." });
       return z.NEVER;
