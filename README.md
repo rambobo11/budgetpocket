@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PocketBudget
 
-## Getting Started
+App privée de suivi budget : dépenses, revenus, patrimoine (crypto live), crédits, stats.  
+Stack : Next.js, Tailwind, Shadcn UI, Supabase.
 
-First, run the development server:
+## Fonctionnalités
+
+- **Dépenses** — Quick Add CB/Swile, catégories, mois
+- **Revenus** — sources + mois concerné
+- **Patrimoine** — crypto live, cash, MA, primes CSE à part
+- **Crédit** — créances / crédits (EUR & MAD)
+- **Stats** — totaux du mois
+- Dark mode + mode privacy (masque les montants)
+
+## Setup local
 
 ```bash
+cp .env.local.example .env.local
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Variables (`.env.local`)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Où la trouver |
+|----------|----------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | idem (`anon` `public`) |
+| `OWNER_USER_ID` | Supabase → Authentication → Users → UID |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Base de données
 
-## Learn More
+Dans Supabase → **SQL Editor**, exécute `supabase/schema.sql` (ou les scripts incrémentaux si ta base existe déjà). Voir `supabase/README.md`.
 
-To learn more about Next.js, take a look at the following resources:
+### Utilisateur
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Authentication → Users → **Add user** (email / mot de passe). Désactive les inscriptions publiques en prod.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Déploiement Vercel
 
-## Deploy on Vercel
+1. Importe le repo GitHub sur [vercel.com](https://vercel.com)
+2. Ajoute les 3 variables d’environnement (Production)
+3. Deploy
+4. Supabase → Authentication → URL Configuration :
+   - **Site URL** = `https://ton-app.vercel.app`
+   - **Redirect URLs** = `https://ton-app.vercel.app/**`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Ne mets **pas** `ALLOW_HISTORICAL_IMPORT` en production.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Stack
+
+- Next.js (App Router) + TypeScript
+- Tailwind CSS + Shadcn UI + Lucide
+- Supabase Auth + Postgres (RLS)
+- CoinGecko (prix crypto, proxy authentifié)
