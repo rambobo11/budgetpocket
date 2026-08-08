@@ -85,7 +85,7 @@ export function QuickAddForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-[1.75rem] border border-zinc-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.04)] sm:p-7 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none"
+      className="min-w-0 overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.04)] sm:p-7 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none"
     >
       <div className="mb-5">
         <h2 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
@@ -176,7 +176,7 @@ export function QuickAddForm({
           </Select>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex min-w-0 flex-col gap-2">
           <Label
             htmlFor="date"
             className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400"
@@ -191,7 +191,7 @@ export function QuickAddForm({
             max={bounds.max}
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="h-12 rounded-xl border-zinc-200 bg-white px-4 text-base shadow-none focus-visible:border-zinc-400 focus-visible:ring-zinc-400/20 dark:border-zinc-700 dark:bg-zinc-950 dark:focus-visible:border-zinc-500 dark:focus-visible:ring-zinc-500/20"
+            className="h-12 w-full max-w-full min-w-0 rounded-xl border-zinc-200 bg-white px-4 text-base shadow-none focus-visible:border-zinc-400 focus-visible:ring-zinc-400/20 dark:border-zinc-700 dark:bg-zinc-950 dark:focus-visible:border-zinc-500 dark:focus-visible:ring-zinc-500/20"
           />
         </div>
 

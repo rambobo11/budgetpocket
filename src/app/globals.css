@@ -127,4 +127,19 @@
   html {
     @apply font-sans;
   }
+
+  /* iOS Safari: native date/month pickers overflow their parent otherwise */
+  input[type="date"],
+  input[type="month"],
+  input[type="datetime-local"],
+  input[type="time"],
+  input[type="week"] {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
+  }
 }

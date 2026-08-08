@@ -120,7 +120,7 @@ export function IncomesView({ initialIncomes }: IncomesViewProps) {
       <AppNav />
 
       <div
-        className={`grid grid-cols-1 items-start gap-5 transition-opacity md:grid-cols-2 md:gap-8 ${isPending ? "opacity-60" : "opacity-100"}`}
+        className={`grid min-w-0 grid-cols-1 items-start gap-5 transition-opacity md:grid-cols-2 md:gap-8 ${isPending ? "opacity-60" : "opacity-100"}`}
       >
         <div className="md:sticky md:top-8">
           <IncomeForm
