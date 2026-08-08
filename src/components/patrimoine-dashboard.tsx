@@ -12,15 +12,18 @@ import { fr } from "date-fns/locale";
 import {
   ChevronLeft,
   ChevronRight,
+  Landmark,
   PiggyBank,
+  Shield,
+  Target,
   TrendingDown,
   TrendingUp,
   Wallet,
 } from "lucide-react";
-import type { Asset, Income } from "@/lib/types";
+import type { Asset, Credit, Expense, Income } from "@/lib/types";
 import { formatEuro } from "@/lib/assets";
 import { currentMonthStart, nowInAppTz } from "@/lib/date";
-import { fetchExpensesForMonth } from "@/lib/expenses";
+import { fetchExpensesBetween, fetchExpensesForMonth } from "@/lib/expenses";
 import { fetchIncomesForMonth } from "@/lib/incomes";
 import {
   buildIncomeHistory,
@@ -31,12 +34,14 @@ import {
   formatSignedPercent,
   lastNMonths,
 } from "@/lib/patrimoine-analytics";
+import { computeWealthKpis } from "@/lib/wealth-kpis";
 import { usePrivacy } from "@/components/privacy-provider";
 import { PrivacyToggle } from "@/components/privacy-toggle";
 import { Button } from "@/components/ui/button";
 
 type PatrimoineDashboardProps = {
   assets: Asset[];
+  credits: Credit[];
 };
 
 const SOURCE_COLORS = [
@@ -48,25 +53,31 @@ const SOURCE_COLORS = [
   "bg-rose-400",
 ];
 
-export function PatrimoineDashboard({ assets }: PatrimoineDashboardProps) {
+export function PatrimoineDashboard({
+  assets,
+  credits,
+}: PatrimoineDashboardProps) {
   const { mask } = usePrivacy();
   const [month, setMonth] = useState(() => currentMonthStart());
   const [currentIncomes, setCurrentIncomes] = useState<Income[]>([]);
   const [previousIncomes, setPreviousIncomes] = useState<Income[]>([]);
   const [historyIncomes, setHistoryIncomes] = useState<Income[]>([]);
   const [expensesTotal, setExpensesTotal] = useState(0);
+  const [runwayExpenses, setRunwayExpenses] = useState<Expense[]>([]);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     startTransition(async () => {
       const previousMonth = subMonths(month, 1);
       const historyStart = subMonths(month, 5);
+      const runwayStart = subMonths(month, 2);
 
-      const [current, previous, history, expenses] = await Promise.all([
+      const [current, previous, history, expenses, runway] = await Promise.all([
         fetchIncomesForMonth(month),
         fetchIncomesForMonth(previousMonth),
         fetchIncomesBetween(historyStart, month),
         fetchExpensesForMonth(month),
+        fetchExpensesBetween(runwayStart, month),
       ]);
 
       setCurrentIncomes(current);
@@ -75,6 +86,7 @@ export function PatrimoineDashboard({ assets }: PatrimoineDashboardProps) {
       setExpensesTotal(
         expenses.reduce((sum, item) => sum + Number(item.amount), 0)
       );
+      setRunwayExpenses(runway);
     });
   }, [month]);
 
@@ -85,6 +97,14 @@ export function PatrimoineDashboard({ assets }: PatrimoineDashboardProps) {
     previousIncomes,
     historyIncomes,
     expensesTotal,
+  });
+
+  const wealth = computeWealthKpis({
+    assets,
+    credits,
+    expenses: runwayExpenses,
+    endMonth: month,
+    expenseMonths: 3,
   });
 
   const incomeKpis = computeIncomeMonthKpis(
@@ -102,7 +122,6 @@ export function PatrimoineDashboard({ assets }: PatrimoineDashboardProps) {
     <section
       className={`mb-8 space-y-5 transition-opacity md:mb-10 md:space-y-6 ${isPending ? "opacity-70" : "opacity-100"}`}
     >
-      {/* Hero patrimoine */}
       <div className="rounded-[1.75rem] border border-zinc-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900 sm:p-7">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -115,6 +134,9 @@ export function PatrimoineDashboard({ assets }: PatrimoineDashboardProps) {
             <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
               {synthèse.patrimoine.count} actif
               {synthèse.patrimoine.count > 1 ? "s" : ""} · hors primes CSE
+              {wealth.debtsEur > 0
+                ? ` · net ${mask(formatEuro(wealth.netEur))}`
+                : ""}
             </p>
           </div>
           <PrivacyToggle prominent />
@@ -152,9 +174,98 @@ export function PatrimoineDashboard({ assets }: PatrimoineDashboardProps) {
             </div>
           </div>
         ) : null}
+
+        <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <div className="rounded-2xl border border-zinc-100 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
+            <div className="mb-2 flex size-8 items-center justify-center rounded-full bg-white text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
+              <Wallet className="size-4" />
+            </div>
+            <p className="text-[11px] font-medium tracking-wide text-zinc-500 uppercase">
+              Liquidités
+            </p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+              {mask(formatEuro(wealth.liquidEur))}
+            </p>
+            <p className="mt-0.5 text-xs text-zinc-500">
+              Cash + MA
+              {wealth.liquidPercent != null
+                ? ` · ${wealth.liquidPercent.toFixed(0)}%`
+                : ""}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-100 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
+            <div className="mb-2 flex size-8 items-center justify-center rounded-full bg-white text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
+              <TrendingUp className="size-4" />
+            </div>
+            <p className="text-[11px] font-medium tracking-wide text-zinc-500 uppercase">
+              Part investie
+            </p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+              {wealth.investedPercent == null
+                ? "—"
+                : `${wealth.investedPercent.toFixed(0)} %`}
+            </p>
+            <p className="mt-0.5 text-xs text-zinc-500">
+              {mask(formatEuro(wealth.investedEur))} · crypto / actions
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-100 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
+            <div className="mb-2 flex size-8 items-center justify-center rounded-full bg-white text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
+              <Target className="size-4" />
+            </div>
+            <p className="text-[11px] font-medium tracking-wide text-zinc-500 uppercase">
+              Concentration
+            </p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+              {wealth.topAssetPercent == null
+                ? "—"
+                : `${wealth.topAssetPercent.toFixed(0)} %`}
+            </p>
+            <p className="mt-0.5 truncate text-xs text-zinc-500">
+              {wealth.topAssetName
+                ? mask(wealth.topAssetName)
+                : "Aucun actif"}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-100 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
+            <div className="mb-2 flex size-8 items-center justify-center rounded-full bg-white text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
+              <Shield className="size-4" />
+            </div>
+            <p className="text-[11px] font-medium tracking-wide text-zinc-500 uppercase">
+              Filet de sécurité
+            </p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+              {wealth.runwayMonths == null
+                ? "—"
+                : `${wealth.runwayMonths.toFixed(1)} mois`}
+            </p>
+            <p className="mt-0.5 text-xs text-zinc-500">
+              vs dépenses moy. {wealth.runwayMonthsSampled} mois
+            </p>
+          </div>
+
+          <div className="col-span-2 rounded-2xl border border-zinc-100 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/50 lg:col-span-1">
+            <div className="mb-2 flex size-8 items-center justify-center rounded-full bg-white text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
+              <Landmark className="size-4" />
+            </div>
+            <p className="text-[11px] font-medium tracking-wide text-zinc-500 uppercase">
+              Patrimoine net
+            </p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+              {mask(formatEuro(wealth.netEur))}
+            </p>
+            <p className="mt-0.5 text-xs text-zinc-500">
+              {wealth.debtsEur > 0
+                ? `brut − ${mask(formatEuro(wealth.debtsEur))} de crédits`
+                : "aucun crédit ouvert"}
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Revenus du mois */}
       <div className="rounded-[1.75rem] border border-zinc-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900 sm:p-7">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -226,7 +337,6 @@ export function PatrimoineDashboard({ assets }: PatrimoineDashboardProps) {
           )}
         </div>
 
-        {/* KPI cards */}
         <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3">
           <div className="rounded-2xl border border-zinc-100 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
             <div className="mb-2 flex size-8 items-center justify-center rounded-full bg-white text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
@@ -271,7 +381,6 @@ export function PatrimoineDashboard({ assets }: PatrimoineDashboardProps) {
           </div>
         </div>
 
-        {/* Sources */}
         <div className="mt-6">
           <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             Par source de revenu
@@ -307,7 +416,6 @@ export function PatrimoineDashboard({ assets }: PatrimoineDashboardProps) {
           )}
         </div>
 
-        {/* Historique 6 mois */}
         <div className="mt-8">
           <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             Évolution des revenus
@@ -315,7 +423,10 @@ export function PatrimoineDashboard({ assets }: PatrimoineDashboardProps) {
           <p className="mt-0.5 text-xs text-zinc-500">6 derniers mois</p>
           <div className="mt-4 flex h-40 items-end gap-2 sm:gap-3">
             {history.map((item) => {
-              const height = Math.max((item.total / maxHistory) * 100, item.total > 0 ? 6 : 2);
+              const height = Math.max(
+                (item.total / maxHistory) * 100,
+                item.total > 0 ? 6 : 2
+              );
               const isSelected = item.key === incomeKpis.current.key;
               return (
                 <button

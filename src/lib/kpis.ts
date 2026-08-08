@@ -1,6 +1,21 @@
+import {
+  endOfMonth,
+  format,
+  isSameMonth,
+  startOfMonth,
+} from "date-fns";
+import { fr } from "date-fns/locale";
+import { toZonedTime } from "date-fns-tz";
 import type { Category, Expense, PaymentMethod } from "@/lib/types";
+import { APP_TIMEZONE, nowInAppTz } from "@/lib/date";
+import { budgetMonthKey } from "@/lib/incomes";
+import { lastNMonths } from "@/lib/patrimoine-analytics";
 
 export { formatEuro } from "@/lib/format";
+export {
+  formatSignedEuro,
+  formatSignedPercent,
+} from "@/lib/patrimoine-analytics";
 
 export type CategoryBreakdown = {
   category: Category | string;
@@ -18,6 +33,31 @@ export type MonthKpis = {
   swileCount: number;
   byCategory: CategoryBreakdown[];
   dailyAverage: number;
+};
+
+export type MonthExpenseSummary = {
+  month: Date;
+  key: string;
+  label: string;
+  shortLabel: string;
+  total: number;
+  count: number;
+};
+
+export type ExpenseMonthDelta = {
+  delta: number;
+  deltaPercent: number | null;
+  previousTotal: number;
+};
+
+export type ExpenseInsights = {
+  topCategory: CategoryBreakdown | null;
+  cbSharePercent: number | null;
+  swileSharePercent: number | null;
+  /** Projection fin de mois (mois courant uniquement). */
+  projectedTotal: number | null;
+  daysElapsed: number;
+  daysInMonth: number;
 };
 
 export function computeMonthKpis(expenses: Expense[]): MonthKpis {
@@ -62,7 +102,10 @@ export function computeMonthKpis(expenses: Expense[]): MonthKpis {
     .sort((a, b) => b.amount - a.amount);
 
   const uniqueDays = new Set(
-    expenses.map((e) => new Date(e.created_at).toISOString().slice(0, 10))
+    expenses.map((e) => {
+      const zoned = toZonedTime(new Date(e.created_at), APP_TIMEZONE);
+      return format(zoned, "yyyy-MM-dd");
+    })
   ).size;
 
   return {
@@ -74,5 +117,87 @@ export function computeMonthKpis(expenses: Expense[]): MonthKpis {
     swileCount,
     byCategory,
     dailyAverage: uniqueDays > 0 ? total / uniqueDays : 0,
+  };
+}
+
+export function expenseMonthKey(createdAt: string): string {
+  const zoned = toZonedTime(new Date(createdAt), APP_TIMEZONE);
+  return budgetMonthKey(zoned);
+}
+
+export function summarizeExpensesForMonth(
+  month: Date,
+  expenses: Expense[]
+): MonthExpenseSummary {
+  const key = budgetMonthKey(month);
+  const monthExpenses = expenses.filter(
+    (expense) => expenseMonthKey(expense.created_at) === key
+  );
+  const total = monthExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+
+  return {
+    month: startOfMonth(month),
+    key,
+    label: format(startOfMonth(month), "MMMM yyyy", { locale: fr }),
+    shortLabel: format(startOfMonth(month), "MMM yy", { locale: fr }),
+    total,
+    count: monthExpenses.length,
+  };
+}
+
+export function buildExpenseHistory(
+  months: Date[],
+  expenses: Expense[]
+): MonthExpenseSummary[] {
+  return months.map((month) => summarizeExpensesForMonth(month, expenses));
+}
+
+export function computeExpenseHistory(
+  endMonth: Date,
+  expenses: Expense[],
+  monthsCount = 6
+): MonthExpenseSummary[] {
+  return buildExpenseHistory(lastNMonths(monthsCount, endMonth), expenses);
+}
+
+export function computeExpenseDelta(
+  currentTotal: number,
+  previousTotal: number
+): ExpenseMonthDelta {
+  const delta = currentTotal - previousTotal;
+  const deltaPercent =
+    previousTotal > 0 ? (delta / previousTotal) * 100 : null;
+  return { delta, deltaPercent, previousTotal };
+}
+
+export function computeExpenseInsights(
+  month: Date,
+  kpis: MonthKpis
+): ExpenseInsights {
+  const topCategory = kpis.byCategory[0] ?? null;
+  const cbSharePercent =
+    kpis.total > 0 ? (kpis.cbTotal / kpis.total) * 100 : null;
+  const swileSharePercent =
+    kpis.total > 0 ? (kpis.swileTotal / kpis.total) * 100 : null;
+
+  const daysInMonth = endOfMonth(month).getDate();
+  const now = nowInAppTz();
+  const isCurrent = isSameMonth(month, now);
+  const daysElapsed = isCurrent
+    ? Math.max(now.getDate(), 1)
+    : daysInMonth;
+
+  const projectedTotal =
+    isCurrent && kpis.total > 0
+      ? (kpis.total / daysElapsed) * daysInMonth
+      : null;
+
+  return {
+    topCategory,
+    cbSharePercent,
+    swileSharePercent,
+    projectedTotal,
+    daysElapsed,
+    daysInMonth,
   };
 }

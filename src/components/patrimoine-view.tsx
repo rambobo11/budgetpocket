@@ -8,7 +8,7 @@ import {
   RefreshCw,
   Ticket,
 } from "lucide-react";
-import type { Asset, AssetType } from "@/lib/types";
+import type { Asset, AssetType, Credit } from "@/lib/types";
 import {
   computeAvantagesKpis,
   formatEuro,
@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 
 type PatrimoineViewProps = {
   initialAssets: Asset[];
+  initialCredits: Credit[];
 };
 
 const PATRIMOINE_TYPES = [
@@ -55,7 +56,10 @@ const typeIcons: Record<string, typeof Gift> = {
   Avantages: Gift,
 };
 
-export function PatrimoineView({ initialAssets }: PatrimoineViewProps) {
+export function PatrimoineView({
+  initialAssets,
+  initialCredits,
+}: PatrimoineViewProps) {
   const [assets, setAssets] = useState<Asset[]>(initialAssets);
   const [showAddPatrimoine, setShowAddPatrimoine] = useState(false);
   const [showAddAvantage, setShowAddAvantage] = useState(false);
@@ -219,7 +223,7 @@ export function PatrimoineView({ initialAssets }: PatrimoineViewProps) {
 
       <AppNav />
 
-      <PatrimoineDashboard assets={assets} />
+      <PatrimoineDashboard assets={assets} credits={initialCredits} />
 
       {hasLiveCrypto && (refreshing || lastRefresh || refreshError) ? (
         <p className="mb-4 text-xs text-zinc-500 dark:text-zinc-400">

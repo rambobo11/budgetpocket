@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  FileText,
   HandCoins,
   Landmark,
   Plus,
@@ -21,6 +22,7 @@ const links: {
   { href: "/patrimoine", label: "Patrimoine", icon: Landmark },
   { href: "/credits", label: "Crédit", icon: HandCoins },
   { href: "/dashboard", label: "Stats", icon: BarChart3 },
+  { href: "/synthese", label: "Synthèse", icon: FileText },
 ];
 
 export function AppNav() {
