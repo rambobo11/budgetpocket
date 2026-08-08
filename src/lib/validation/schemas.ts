@@ -6,6 +6,7 @@ import {
   CREDIT_KINDS,
   INCOME_SOURCES,
   PAYMENT_METHODS,
+  UPCOMING_KINDS,
 } from "@/lib/types";
 import { CRYPTO_COINS } from "@/lib/crypto";
 import { isRealBudgetMonth, isRealCalendarDate } from "@/lib/date";
@@ -183,7 +184,27 @@ export const updateCreditAmountSchema = z.object({
   amount: amountNonNegative,
 });
 
+const optionalDueDate = z
+  .union([z.string(), z.null(), z.undefined()])
+  .transform((value, ctx) => {
+    if (value == null || value === "") return null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !isRealCalendarDate(value)) {
+      ctx.addIssue({ code: "custom", message: "Date limite invalide." });
+      return z.NEVER;
+    }
+    return value;
+  });
+
+export const createUpcomingSchema = z.object({
+  title: z.string().trim().min(1, "Indiquez un libellé.").max(120),
+  kind: z.enum(UPCOMING_KINDS),
+  amount: amountPositive,
+  dueDate: optionalDueDate,
+  notes: descriptionSchema,
+});
+
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
 export type CreateIncomeInput = z.infer<typeof createIncomeSchema>;
 export type CreateAssetInput = z.infer<typeof createAssetSchema>;
 export type CreateCreditInput = z.infer<typeof createCreditSchema>;
+export type CreateUpcomingInput = z.infer<typeof createUpcomingSchema>;

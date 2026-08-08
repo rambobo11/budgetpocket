@@ -111,3 +111,24 @@ export type Credit = {
   created_at: string;
   updated_at: string;
 };
+
+export const UPCOMING_KINDS = ["À payer", "À recevoir"] as const;
+
+export type UpcomingKind = (typeof UPCOMING_KINDS)[number];
+
+export const UPCOMING_STATUSES = ["open", "done"] as const;
+
+export type UpcomingStatus = (typeof UPCOMING_STATUSES)[number];
+
+export type Upcoming = {
+  id: string;
+  user_id: string;
+  title: string;
+  kind: UpcomingKind;
+  amount: number;
+  due_date: string | null;
+  notes: string | null;
+  status: UpcomingStatus;
+  created_at: string;
+  updated_at: string;
+};

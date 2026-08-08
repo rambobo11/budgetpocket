@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { monthIsoBounds } from "@/lib/date";
-import type { Asset, Credit, Expense, Income } from "@/lib/types";
+import type { Asset, Credit, Expense, Income, Upcoming } from "@/lib/types";
 
 export async function getExpensesForMonth(month: Date): Promise<Expense[]> {
   const supabase = await createClient();
@@ -53,4 +53,16 @@ export async function getCredits(): Promise<Credit[]> {
     .order("created_at", { ascending: false });
 
   return (data ?? []) as Credit[];
+}
+
+export async function getUpcoming(): Promise<Upcoming[]> {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from("upcoming")
+    .select("*")
+    .order("status", { ascending: true })
+    .order("created_at", { ascending: false });
+
+  return (data ?? []) as Upcoming[];
 }
