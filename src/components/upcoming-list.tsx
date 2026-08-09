@@ -255,7 +255,7 @@ export function UpcomingList({
                         variant="ghost"
                         disabled={busyId === item.id}
                         onClick={() => void handleReopen(item)}
-                        className="size-8 rounded-full text-zinc-500"
+                        className="size-8 rounded-full text-zinc-500 dark:text-zinc-400"
                         aria-label="Rouvrir"
                       >
                         {busyId === item.id ? (
@@ -309,7 +309,7 @@ export function UpcomingList({
                       <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
                         Déjà converti en écriture
                       </p>
-                      <p className="mt-0.5 text-xs text-zinc-500">
+                      <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
                         Tu peux seulement clôturer sans recréer de dépense /
                         revenu.
                       </p>
@@ -335,14 +335,14 @@ export function UpcomingList({
                           ? "Créer une dépense ?"
                           : "Créer un revenu ?"}
                       </p>
-                      <p className="mt-0.5 text-xs text-zinc-500">
+                      <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
                         Ou clôture sans écrire dans Dépenses / Revenus.
                       </p>
 
                       {item.kind === "À payer" ? (
                         <div className="mt-3 grid gap-3 sm:grid-cols-2">
                           <div className="flex flex-col gap-1.5">
-                            <Label className="text-xs text-zinc-500">
+                            <Label className="text-xs text-zinc-500 dark:text-zinc-400">
                               Catégorie
                             </Label>
                             <Select
@@ -364,7 +364,7 @@ export function UpcomingList({
                             </Select>
                           </div>
                           <div className="flex flex-col gap-1.5">
-                            <Label className="text-xs text-zinc-500">
+                            <Label className="text-xs text-zinc-500 dark:text-zinc-400">
                               Paiement
                             </Label>
                             <div className="grid grid-cols-2 gap-2">
@@ -387,7 +387,7 @@ export function UpcomingList({
                         </div>
                       ) : (
                         <div className="mt-3 flex flex-col gap-1.5">
-                          <Label className="text-xs text-zinc-500">Source</Label>
+                          <Label className="text-xs text-zinc-500 dark:text-zinc-400">Source</Label>
                           <Select
                             value={source}
                             onValueChange={(value) => {

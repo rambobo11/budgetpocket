@@ -19,7 +19,7 @@ export function ThemeToggle() {
         type="button"
         variant="ghost"
         size="icon"
-        className="size-9 rounded-full text-zinc-500"
+        className="size-9 rounded-full text-zinc-500 dark:text-zinc-400"
         aria-label="Changer le thème"
       />
     );

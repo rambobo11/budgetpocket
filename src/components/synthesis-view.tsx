@@ -204,7 +204,7 @@ export function SynthesisView({
                     <span className="block text-sm font-medium text-zinc-900 dark:text-zinc-50">
                       {item.label}
                     </span>
-                    <span className="block text-xs text-zinc-500">
+                    <span className="block text-xs text-zinc-500 dark:text-zinc-400">
                       {item.hint}
                     </span>
                   </span>
@@ -249,12 +249,12 @@ export function SynthesisView({
               Télécharger .md
             </Button>
             {isPending ? (
-              <span className="inline-flex items-center gap-2 text-sm text-zinc-500">
+              <span className="inline-flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                 <Loader2 className="size-4 animate-spin" />
                 Chargement…
               </span>
             ) : (
-              <span className="inline-flex items-center gap-2 text-sm text-zinc-500">
+              <span className="inline-flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                 <FileText className="size-4" />
                 {format(endMonth, "yyyy-MM")} · {markdown.length} car.
               </span>

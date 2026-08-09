@@ -37,6 +37,7 @@ import { usePrivacy } from "@/components/privacy-provider";
 import { AppNav } from "@/components/app-nav";
 import { PageShell } from "@/components/page-shell";
 import { CashflowSankey } from "@/components/cashflow-sankey";
+import { ExpensePaceChart } from "@/components/expense-pace-chart";
 import { Button } from "@/components/ui/button";
 
 type StatsDashboardProps = {
@@ -203,7 +204,7 @@ export function StatsDashboard({
             <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
               {mask(formatEuro(kpis.cbTotal))}
             </p>
-            <p className="mt-0.5 text-xs text-zinc-500">
+            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
               {insights.cbSharePercent != null
                 ? `${insights.cbSharePercent.toFixed(0)}% · `
                 : ""}
@@ -221,7 +222,7 @@ export function StatsDashboard({
             <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
               {mask(formatEuro(kpis.swileTotal))}
             </p>
-            <p className="mt-0.5 text-xs text-zinc-500">
+            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
               {insights.swileSharePercent != null
                 ? `${insights.swileSharePercent.toFixed(0)}% · `
                 : ""}
@@ -238,16 +239,24 @@ export function StatsDashboard({
                 <p className="mt-1 truncate text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                   {insights.topCategory.category}
                 </p>
-                <p className="mt-0.5 text-sm tabular-nums text-zinc-500">
+                <p className="mt-0.5 text-sm tabular-nums text-zinc-500 dark:text-zinc-400">
                   {mask(formatEuro(insights.topCategory.amount))} ·{" "}
                   {insights.topCategory.percent.toFixed(0)}% du mois
                 </p>
               </>
             ) : (
-              <p className="mt-1 text-sm text-zinc-500">Aucune dépense</p>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                Aucune dépense
+              </p>
             )}
           </section>
         </div>
+
+        <ExpensePaceChart
+          month={selectedMonth}
+          expenses={expenses}
+          previousExpenses={previousExpenses}
+        />
 
         <CashflowSankey incomes={incomes} expenses={expenses} />
 
@@ -255,7 +264,9 @@ export function StatsDashboard({
           <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             Évolution des dépenses
           </p>
-          <p className="mt-0.5 text-xs text-zinc-500">6 derniers mois</p>
+          <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+            6 derniers mois
+          </p>
           <div className="mt-4 flex h-40 items-end gap-2 sm:gap-3">
             {history.map((item) => {
               const height = Math.max(
@@ -271,7 +282,7 @@ export function StatsDashboard({
                   className="group flex min-w-0 flex-1 flex-col items-center gap-2"
                   title={`${item.label}: ${mask(formatEuro(item.total))}`}
                 >
-                  <span className="text-[10px] font-medium tabular-nums text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100 sm:text-[11px]">
+                  <span className="text-[10px] font-medium tabular-nums text-zinc-500 opacity-0 transition-opacity group-hover:opacity-100 sm:text-[11px] dark:text-zinc-400">
                     {mask(formatEuro(item.total))}
                   </span>
                   <div className="flex w-full flex-1 items-end justify-center">
@@ -288,7 +299,7 @@ export function StatsDashboard({
                     className={`text-[10px] capitalize sm:text-xs ${
                       isSelected
                         ? "font-semibold text-zinc-900 dark:text-zinc-100"
-                        : "text-zinc-400"
+                        : "text-zinc-500 dark:text-zinc-400"
                     }`}
                   >
                     {item.shortLabel}
@@ -310,7 +321,7 @@ export function StatsDashboard({
           </div>
 
           {kpis.byCategory.length === 0 ? (
-            <p className="px-5 py-10 text-center text-sm text-zinc-500">
+            <p className="px-5 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
               Aucune dépense ce mois-ci.
               <br />
               Importe ton historique ou ajoute via Quick Add.
@@ -324,7 +335,7 @@ export function StatsDashboard({
                       <p className="truncate text-[15px] font-medium text-zinc-900 dark:text-zinc-50">
                         {item.category}
                       </p>
-                      <p className="text-xs text-zinc-500">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
                         {item.count} · {item.percent.toFixed(0)}%
                       </p>
                     </div>

@@ -262,7 +262,7 @@ export function AssetForm({
             type="button"
             variant="ghost"
             onClick={onCancel}
-            className="h-9 shrink-0 rounded-full px-3 text-sm text-zinc-500"
+            className="h-9 shrink-0 rounded-full px-3 text-sm text-zinc-500 dark:text-zinc-400"
           >
             Fermer
           </Button>
@@ -345,7 +345,7 @@ export function AssetForm({
 
             <div className="rounded-2xl border border-zinc-100 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/50">
               {priceLoading ? (
-                <p className="flex items-center gap-2 text-sm text-zinc-500">
+                <p className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                   <Loader2 className="size-3.5 animate-spin" />
                   Prix en cours…
                 </p>
@@ -368,7 +368,7 @@ export function AssetForm({
                   ) : null}
                 </>
               ) : (
-                <p className="text-sm text-zinc-500">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
                   Choisis une crypto pour voir le prix en direct.
                 </p>
               )}

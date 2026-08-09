@@ -166,7 +166,7 @@ export function PatrimoineDashboard({
                   <span className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
                     {mask(formatEuro(item.value))}
                   </span>
-                  <span className="text-zinc-400">
+                  <span className="text-zinc-400 dark:text-zinc-500">
                     {item.percent.toFixed(0)}%
                   </span>
                 </div>
@@ -186,7 +186,7 @@ export function PatrimoineDashboard({
             <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
               {mask(formatEuro(wealth.liquidEur))}
             </p>
-            <p className="mt-0.5 text-xs text-zinc-500">
+            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
               Cash + MA
               {wealth.liquidPercent != null
                 ? ` · ${wealth.liquidPercent.toFixed(0)}%`
@@ -206,7 +206,7 @@ export function PatrimoineDashboard({
                 ? "—"
                 : `${wealth.investedPercent.toFixed(0)} %`}
             </p>
-            <p className="mt-0.5 text-xs text-zinc-500">
+            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
               {mask(formatEuro(wealth.investedEur))} · crypto / actions
             </p>
           </div>
@@ -223,7 +223,7 @@ export function PatrimoineDashboard({
                 ? "—"
                 : `${wealth.topAssetPercent.toFixed(0)} %`}
             </p>
-            <p className="mt-0.5 truncate text-xs text-zinc-500">
+            <p className="mt-0.5 truncate text-xs text-zinc-500 dark:text-zinc-400">
               {wealth.topAssetName
                 ? mask(wealth.topAssetName)
                 : "Aucun actif"}
@@ -242,7 +242,7 @@ export function PatrimoineDashboard({
                 ? "—"
                 : `${wealth.runwayMonths.toFixed(1)} mois`}
             </p>
-            <p className="mt-0.5 text-xs text-zinc-500">
+            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
               vs dépenses moy. {wealth.runwayMonthsSampled} mois
             </p>
           </div>
@@ -257,7 +257,7 @@ export function PatrimoineDashboard({
             <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
               {mask(formatEuro(wealth.netEur))}
             </p>
-            <p className="mt-0.5 text-xs text-zinc-500">
+            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
               {wealth.debtsEur > 0
                 ? `brut − ${mask(formatEuro(wealth.debtsEur))} de crédits`
                 : "aucun crédit ouvert"}
@@ -278,7 +278,7 @@ export function PatrimoineDashboard({
                 variant="ghost"
                 size="icon"
                 onClick={() => setMonth((m) => startOfMonth(subMonths(m, 1)))}
-                className="size-8 rounded-full text-zinc-500"
+                className="size-8 rounded-full text-zinc-500 dark:text-zinc-400"
                 aria-label="Mois précédent"
               >
                 <ChevronLeft className="size-5" />
@@ -375,7 +375,7 @@ export function PatrimoineDashboard({
                 ? "—"
                 : `${synthèse.savingsRate.toFixed(0)} %`}
             </p>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
               Revenus − dépenses du mois
             </p>
           </div>
@@ -386,7 +386,7 @@ export function PatrimoineDashboard({
             Par source de revenu
           </p>
           {incomeKpis.current.bySource.length === 0 ? (
-            <p className="mt-3 text-sm text-zinc-500">
+            <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
               Aucun revenu sur ce mois budgétaire.
             </p>
           ) : (
@@ -399,7 +399,7 @@ export function PatrimoineDashboard({
                     </p>
                     <p className="text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
                       {mask(formatEuro(item.amount))}
-                      <span className="ml-2 font-normal text-zinc-400">
+                      <span className="ml-2 font-normal text-zinc-500 dark:text-zinc-400">
                         {item.percent.toFixed(0)}%
                       </span>
                     </p>
@@ -420,7 +420,7 @@ export function PatrimoineDashboard({
           <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             Évolution des revenus
           </p>
-          <p className="mt-0.5 text-xs text-zinc-500">6 derniers mois</p>
+          <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">6 derniers mois</p>
           <div className="mt-4 flex h-40 items-end gap-2 sm:gap-3">
             {history.map((item) => {
               const height = Math.max(
@@ -453,7 +453,7 @@ export function PatrimoineDashboard({
                     className={`text-[10px] capitalize sm:text-xs ${
                       isSelected
                         ? "font-semibold text-zinc-900 dark:text-zinc-100"
-                        : "text-zinc-400"
+                        : "text-zinc-500 dark:text-zinc-400"
                     }`}
                   >
                     {item.shortLabel}

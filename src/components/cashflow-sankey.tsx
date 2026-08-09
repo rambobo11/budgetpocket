@@ -61,12 +61,15 @@ function hashColor(id: string) {
   return FLOW_PALETTE[hash % FLOW_PALETTE.length];
 }
 
-function nodeColor(node: Pick<CashflowNode, "id" | "kind">): string {
+function nodeColor(
+  node: Pick<CashflowNode, "id" | "kind">,
+  isDark: boolean
+): string {
   switch (node.kind) {
     case "source":
       return hashColor(node.id);
     case "budget":
-      return "#3f3f46";
+      return isDark ? "#a1a1aa" : "#3f3f46";
     case "category":
       return hashColor(node.id);
     case "savings":
@@ -78,12 +81,12 @@ function nodeColor(node: Pick<CashflowNode, "id" | "kind">): string {
   }
 }
 
-function linkStroke(link: LayoutLink): string {
+function linkStroke(link: LayoutLink, isDark: boolean): string {
   // Couleur du flux = destination (plus lisible type Finary)
   if (link.target.kind === "budget") {
-    return nodeColor(link.source);
+    return nodeColor(link.source, isDark);
   }
-  return nodeColor(link.target);
+  return nodeColor(link.target, isDark);
 }
 
 export function CashflowSankey({ incomes, expenses }: CashflowSankeyProps) {
@@ -137,7 +140,7 @@ export function CashflowSankey({ incomes, expenses }: CashflowSankeyProps) {
         <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
           Revenus → budget → catégories
         </p>
-        <p className="px-2 py-10 text-center text-sm text-zinc-500">
+        <p className="px-2 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
           Ajoute des revenus et des dépenses sur ce mois pour voir le flux.
         </p>
       </div>
@@ -221,7 +224,7 @@ export function CashflowSankey({ incomes, expenses }: CashflowSankeyProps) {
                 className="pb-sankey-link"
                 d={d}
                 fill="none"
-                stroke={linkStroke(link)}
+                stroke={linkStroke(link, isDark)}
                 strokeOpacity={linkOpacity}
                 strokeWidth={Math.max(link.width, 2)}
                 pathLength={1}
@@ -238,7 +241,7 @@ export function CashflowSankey({ incomes, expenses }: CashflowSankeyProps) {
           })}
 
           {graph.nodes.map((node, index) => {
-            const fill = nodeColor(node);
+            const fill = nodeColor(node, isDark);
             const labelLeft = node.x0 < WIDTH / 2;
             const textX = labelLeft ? node.x1 + 12 : node.x0 - 12;
             const textAnchor = labelLeft ? "start" : "end";

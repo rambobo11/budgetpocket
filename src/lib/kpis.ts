@@ -3,6 +3,7 @@ import {
   format,
   isSameMonth,
   startOfMonth,
+  subMonths,
 } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toZonedTime } from "date-fns-tz";
@@ -199,5 +200,94 @@ export function computeExpenseInsights(
     projectedTotal,
     daysElapsed,
     daysInMonth,
+  };
+}
+
+export type ExpensePacePoint = {
+  day: number;
+  /** Dépense du jour (mois sélectionné). */
+  currentDaily: number;
+  currentCumulative: number;
+  previousCumulative: number;
+};
+
+export type ExpensePaceSeries = {
+  points: ExpensePacePoint[];
+  currentAtDate: number;
+  previousAtDate: number;
+  deltaAtDate: number;
+  isEmpty: boolean;
+  currentLabel: string;
+  previousLabel: string;
+};
+
+/** Totaux journaliers indexés 0 → day-1 pour un mois calendaire. */
+function dailyExpenseTotals(month: Date, expenses: Expense[]): number[] {
+  const daysInMonth = endOfMonth(month).getDate();
+  const totals = Array.from({ length: daysInMonth }, () => 0);
+  const key = budgetMonthKey(month);
+
+  for (const expense of expenses) {
+    if (expenseMonthKey(expense.created_at) !== key) continue;
+    const zoned = toZonedTime(new Date(expense.created_at), APP_TIMEZONE);
+    const day = zoned.getDate();
+    if (day < 1 || day > daysInMonth) continue;
+    totals[day - 1] += Number(expense.amount);
+  }
+
+  return totals;
+}
+
+/**
+ * Cumul jour par jour du mois sélectionné vs même jour du mois précédent.
+ * Mois courant : tronqué à aujourd’hui (Europe/Paris).
+ */
+export function computeExpensePaceSeries(
+  month: Date,
+  currentExpenses: Expense[],
+  previousExpenses: Expense[]
+): ExpensePaceSeries {
+  const selected = startOfMonth(month);
+  const previous = startOfMonth(subMonths(selected, 1));
+  const now = nowInAppTz();
+  const isCurrent = isSameMonth(selected, now);
+  const daysInSelected = endOfMonth(selected).getDate();
+  const endDay = isCurrent
+    ? Math.min(Math.max(now.getDate(), 1), daysInSelected)
+    : daysInSelected;
+
+  const currentDaily = dailyExpenseTotals(selected, currentExpenses);
+  const previousDaily = dailyExpenseTotals(previous, previousExpenses);
+  const previousDays = previousDaily.length;
+
+  const points: ExpensePacePoint[] = [];
+  let currentSum = 0;
+  let previousSum = 0;
+
+  for (let day = 1; day <= endDay; day++) {
+    currentSum += currentDaily[day - 1] ?? 0;
+    if (day <= previousDays) {
+      previousSum += previousDaily[day - 1] ?? 0;
+    }
+    points.push({
+      day,
+      currentDaily: currentDaily[day - 1] ?? 0,
+      currentCumulative: currentSum,
+      previousCumulative: previousSum,
+    });
+  }
+
+  const currentAtDate = points.at(-1)?.currentCumulative ?? 0;
+  const previousAtDate = points.at(-1)?.previousCumulative ?? 0;
+  const isEmpty = currentAtDate === 0 && previousAtDate === 0;
+
+  return {
+    points,
+    currentAtDate,
+    previousAtDate,
+    deltaAtDate: currentAtDate - previousAtDate,
+    isEmpty,
+    currentLabel: format(selected, "MMMM yyyy", { locale: fr }),
+    previousLabel: format(previous, "MMMM yyyy", { locale: fr }),
   };
 }

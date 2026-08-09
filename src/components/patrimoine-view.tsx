@@ -295,7 +295,7 @@ export function PatrimoineView({
                 <span className="block text-[15px] font-semibold text-zinc-900 dark:text-zinc-50">
                   Ajouter un actif
                 </span>
-                <span className="mt-1 block text-sm text-zinc-500">
+                <span className="mt-1 block text-sm text-zinc-500 dark:text-zinc-400">
                   Crypto, compte, actions…
                 </span>
               </span>
@@ -380,7 +380,7 @@ export function PatrimoineView({
                   <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
                     {mask(formatEuro(item.value))}
                   </p>
-                  <p className="mt-0.5 text-xs text-zinc-500">
+                  <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
                     {item.count} solde{item.count > 1 ? "s" : ""}
                   </p>
                 </div>
