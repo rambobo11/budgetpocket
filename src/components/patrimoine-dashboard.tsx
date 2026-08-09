@@ -434,7 +434,7 @@ export function PatrimoineDashboard({
                   type="button"
                   onClick={() => setMonth(item.month)}
                   className="group flex min-w-0 flex-1 flex-col items-center gap-2"
-                  title={`${item.label}: ${formatEuro(item.total)}`}
+                  title={`${item.label}: ${mask(formatEuro(item.total))}`}
                 >
                   <span className="text-[10px] font-medium tabular-nums text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100 sm:text-[11px]">
                     {mask(formatEuro(item.total))}

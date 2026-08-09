@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -9,17 +9,35 @@ import {
   Loader2,
   RotateCcw,
   Trash2,
+  X,
 } from "lucide-react";
 import {
+  completeUpcomingAction,
   deleteUpcomingAction,
-  markUpcomingDoneAction,
   reopenUpcomingAction,
 } from "@/app/actions/upcoming";
+import { suggestBudgetMonth } from "@/lib/incomes";
+import { nowInAppTz } from "@/lib/date";
 import { formatEuro } from "@/lib/format";
 import { sortUpcoming } from "@/lib/upcoming-kpis";
-import type { Upcoming } from "@/lib/types";
+import {
+  CATEGORIES,
+  INCOME_SOURCES,
+  type Category,
+  type IncomeSource,
+  type PaymentMethod,
+  type Upcoming,
+} from "@/lib/types";
 import { usePrivacy } from "@/components/privacy-provider";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type UpcomingListProps = {
   items: Upcoming[];
@@ -36,50 +54,103 @@ export function UpcomingList({
 }: UpcomingListProps) {
   const { mask } = usePrivacy();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [convertingId, setConvertingId] = useState<string | null>(null);
+  const [category, setCategory] = useState<Category>("Autres");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cb");
+  const [source, setSource] = useState<IncomeSource>("Autres");
   const [expanded, setExpanded] = useState(false);
+  const inFlight = useRef(false);
 
   const ordered = sortUpcoming(items);
   const hasMore = ordered.length > initialVisible;
   const visible =
     expanded || !hasMore ? ordered : ordered.slice(0, initialVisible);
-  const today = format(new Date(), "yyyy-MM-dd");
+  const today = format(nowInAppTz(), "yyyy-MM-dd");
 
-  async function handleDone(item: Upcoming) {
+  function openConvertPanel(item: Upcoming) {
+    setConvertingId(item.id);
+    setCategory("Autres");
+    setPaymentMethod("cb");
+    setSource("Autres");
+  }
+
+  async function handleComplete(item: Upcoming, convert: boolean) {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusyId(item.id);
-    const result = await markUpcomingDoneAction({ id: item.id });
-    setBusyId(null);
-    if (!result.ok) {
-      window.alert(result.error);
-      return;
+    const eventDate = item.due_date ?? format(nowInAppTz(), "yyyy-MM-dd");
+
+    try {
+      const result = await completeUpcomingAction(
+        convert
+          ? item.kind === "À payer"
+            ? {
+                id: item.id,
+                convert: true,
+                category,
+                paymentMethod,
+                date: eventDate,
+              }
+            : {
+                id: item.id,
+                convert: true,
+                source,
+                date: eventDate,
+                budgetMonth: suggestBudgetMonth(source, eventDate).slice(0, 7),
+              }
+          : { id: item.id, convert: false }
+      );
+
+      if (!result.ok) {
+        window.alert(result.error);
+        return;
+      }
+
+      setConvertingId(null);
+      onUpcomingUpdated(result.data);
+    } finally {
+      inFlight.current = false;
+      setBusyId(null);
     }
-    onUpcomingUpdated(result.data);
   }
 
   async function handleReopen(item: Upcoming) {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusyId(item.id);
-    const result = await reopenUpcomingAction({ id: item.id });
-    setBusyId(null);
-    if (!result.ok) {
-      window.alert(result.error);
-      return;
+    try {
+      const result = await reopenUpcomingAction({ id: item.id });
+      if (!result.ok) {
+        window.alert(result.error);
+        return;
+      }
+      onUpcomingUpdated(result.data);
+    } finally {
+      inFlight.current = false;
+      setBusyId(null);
     }
-    onUpcomingUpdated(result.data);
   }
 
   async function handleDelete(item: Upcoming) {
     const confirmed = window.confirm(
-      `Supprimer ?\n${item.title} — ${formatEuro(Number(item.amount))}`
+      `Supprimer ?\n${item.title} — ${mask(formatEuro(Number(item.amount)))}`
     );
     if (!confirmed) return;
 
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusyId(item.id);
-    const result = await deleteUpcomingAction({ id: item.id });
-    setBusyId(null);
-    if (!result.ok) {
-      window.alert(result.error);
-      return;
+    try {
+      const result = await deleteUpcomingAction({ id: item.id });
+      if (!result.ok) {
+        window.alert(result.error);
+        return;
+      }
+      onUpcomingDeleted(item.id);
+    } finally {
+      inFlight.current = false;
+      setBusyId(null);
     }
-    onUpcomingDeleted(item.id);
   }
 
   if (items.length === 0) {
@@ -105,7 +176,8 @@ export function UpcomingList({
           Liste
         </h2>
         <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
-          {items.length} élément{items.length > 1 ? "s" : ""}
+          {items.length} élément{items.length > 1 ? "s" : ""} · coche = convertir
+          ou juste clôturer
         </p>
       </div>
 
@@ -117,6 +189,8 @@ export function UpcomingList({
           const dueLabel = item.due_date
             ? format(parseISO(item.due_date), "d MMM yyyy", { locale: fr })
             : null;
+          const isConverting = convertingId === item.id;
+          const alreadyConverted = Boolean(item.converted);
 
           return (
             <li key={item.id} className="px-4 py-4 sm:px-6">
@@ -144,6 +218,11 @@ export function UpcomingList({
                     {isDone ? (
                       <span className="shrink-0 rounded-md bg-zinc-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-zinc-500 uppercase dark:bg-zinc-800 dark:text-zinc-400">
                         Fait
+                      </span>
+                    ) : null}
+                    {alreadyConverted && !isDone ? (
+                      <span className="shrink-0 rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-sky-800 uppercase dark:bg-sky-950/50 dark:text-sky-300">
+                        Converti
                       </span>
                     ) : null}
                     {isOverdue ? (
@@ -191,12 +270,18 @@ export function UpcomingList({
                         size="icon"
                         variant="ghost"
                         disabled={busyId === item.id}
-                        onClick={() => void handleDone(item)}
+                        onClick={() =>
+                          isConverting
+                            ? setConvertingId(null)
+                            : openConvertPanel(item)
+                        }
                         className="size-8 rounded-full text-emerald-600 dark:text-emerald-400"
                         aria-label="Marquer comme fait"
                       >
                         {busyId === item.id ? (
                           <Loader2 className="size-4 animate-spin" />
+                        ) : isConverting ? (
+                          <X className="size-4" />
                         ) : (
                           <Check className="size-4" />
                         )}
@@ -216,6 +301,142 @@ export function UpcomingList({
                   </div>
                 </div>
               </div>
+
+              {isConverting ? (
+                <div className="mt-3 rounded-2xl border border-zinc-200 bg-zinc-50/80 p-3 dark:border-zinc-700 dark:bg-zinc-950/50">
+                  {alreadyConverted ? (
+                    <>
+                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                        Déjà converti en écriture
+                      </p>
+                      <p className="mt-0.5 text-xs text-zinc-500">
+                        Tu peux seulement clôturer sans recréer de dépense /
+                        revenu.
+                      </p>
+                      <div className="mt-3">
+                        <Button
+                          type="button"
+                          disabled={busyId === item.id}
+                          onClick={() => void handleComplete(item, false)}
+                          className="h-9 rounded-full bg-zinc-900 px-3.5 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                        >
+                          {busyId === item.id ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            "Juste marquer fait"
+                          )}
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                        {item.kind === "À payer"
+                          ? "Créer une dépense ?"
+                          : "Créer un revenu ?"}
+                      </p>
+                      <p className="mt-0.5 text-xs text-zinc-500">
+                        Ou clôture sans écrire dans Dépenses / Revenus.
+                      </p>
+
+                      {item.kind === "À payer" ? (
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <div className="flex flex-col gap-1.5">
+                            <Label className="text-xs text-zinc-500">
+                              Catégorie
+                            </Label>
+                            <Select
+                              value={category}
+                              onValueChange={(value) => {
+                                if (value) setCategory(value as Category);
+                              }}
+                            >
+                              <SelectTrigger className="h-10! w-full rounded-xl">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CATEGORIES.map((entry) => (
+                                  <SelectItem key={entry} value={entry}>
+                                    {entry}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <Label className="text-xs text-zinc-500">
+                              Paiement
+                            </Label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {(["cb", "swile"] as const).map((method) => (
+                                <button
+                                  key={method}
+                                  type="button"
+                                  onClick={() => setPaymentMethod(method)}
+                                  className={`h-10 rounded-xl border text-sm font-medium ${
+                                    paymentMethod === method
+                                      ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                                      : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400"
+                                  }`}
+                                >
+                                  {method === "cb" ? "CB" : "Swile"}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-3 flex flex-col gap-1.5">
+                          <Label className="text-xs text-zinc-500">Source</Label>
+                          <Select
+                            value={source}
+                            onValueChange={(value) => {
+                              if (value) setSource(value as IncomeSource);
+                            }}
+                          >
+                            <SelectTrigger className="h-10! w-full rounded-xl">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {INCOME_SOURCES.map((entry) => (
+                                <SelectItem key={entry} value={entry}>
+                                  {entry}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          disabled={busyId === item.id}
+                          onClick={() => void handleComplete(item, true)}
+                          className="h-9 rounded-full bg-zinc-900 px-3.5 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                        >
+                          {busyId === item.id ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : item.kind === "À payer" ? (
+                            "Créer la dépense"
+                          ) : (
+                            "Créer le revenu"
+                          )}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled={busyId === item.id}
+                          onClick={() => void handleComplete(item, false)}
+                          className="h-9 rounded-full px-3.5"
+                        >
+                          Juste marquer fait
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : null}
             </li>
           );
         })}

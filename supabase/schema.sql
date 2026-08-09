@@ -188,6 +188,7 @@ create table if not exists public.upcoming (
   due_date date,
   notes text,
   status text not null default 'open' check (status in ('open', 'done')),
+  converted boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

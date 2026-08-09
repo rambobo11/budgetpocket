@@ -203,8 +203,19 @@ export const createUpcomingSchema = z.object({
   notes: descriptionSchema,
 });
 
+export const completeUpcomingSchema = z.object({
+  id: uuidSchema,
+  convert: z.boolean(),
+  category: z.enum(CATEGORIES).optional(),
+  paymentMethod: z.enum(PAYMENT_METHODS).optional(),
+  source: z.enum(INCOME_SOURCES).optional(),
+  date: dateYmd.optional(),
+  budgetMonth: budgetMonthInput.optional(),
+});
+
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
 export type CreateIncomeInput = z.infer<typeof createIncomeSchema>;
 export type CreateAssetInput = z.infer<typeof createAssetSchema>;
 export type CreateCreditInput = z.infer<typeof createCreditSchema>;
 export type CreateUpcomingInput = z.infer<typeof createUpcomingSchema>;
+export type CompleteUpcomingInput = z.infer<typeof completeUpcomingSchema>;

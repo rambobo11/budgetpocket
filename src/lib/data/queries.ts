@@ -64,5 +64,8 @@ export async function getUpcoming(): Promise<Upcoming[]> {
     .order("status", { ascending: true })
     .order("created_at", { ascending: false });
 
-  return (data ?? []) as Upcoming[];
+  return (data ?? []).map((row) => ({
+    ...(row as Upcoming),
+    converted: Boolean((row as Upcoming).converted),
+  }));
 }

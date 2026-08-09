@@ -129,6 +129,8 @@ export type Upcoming = {
   due_date: string | null;
   notes: string | null;
   status: UpcomingStatus;
+  /** True si déjà converti en dépense/revenu (anti-doublon). */
+  converted: boolean;
   created_at: string;
   updated_at: string;
 };

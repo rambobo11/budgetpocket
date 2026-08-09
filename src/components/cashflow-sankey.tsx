@@ -231,7 +231,7 @@ export function CashflowSankey({ incomes, expenses }: CashflowSankeyProps) {
               >
                 <title>
                   {link.source.label} → {link.target.label}:{" "}
-                  {formatEuro(link.value)}
+                  {mask(formatEuro(link.value))}
                 </title>
               </path>
             );
@@ -260,7 +260,7 @@ export function CashflowSankey({ incomes, expenses }: CashflowSankeyProps) {
                   fill={fill}
                 >
                   <title>
-                    {node.label}: {formatEuro(node.value)}
+                    {node.label}: {mask(formatEuro(node.value))}
                   </title>
                 </rect>
                 <text

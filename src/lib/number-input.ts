@@ -25,5 +25,8 @@ export function parseDecimalInput(value: string | number): number {
     s = s.replace(",", ".");
   }
 
+  // Refuse 0x10, 1e3, etc. — Number() les accepterait
+  if (!/^-?\d+(\.\d+)?$/.test(s)) return Number.NaN;
+
   return Number(s);
 }
