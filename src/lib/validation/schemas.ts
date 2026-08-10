@@ -4,6 +4,8 @@ import {
   ASSET_TYPES,
   CATEGORIES,
   CREDIT_KINDS,
+  CRYPTO_QUOTE_CURRENCIES,
+  CRYPTO_TRADE_SIDES,
   INCOME_SOURCES,
   PAYMENT_METHODS,
   UPCOMING_KINDS,
@@ -213,9 +215,21 @@ export const completeUpcomingSchema = z.object({
   budgetMonth: budgetMonthInput.optional(),
 });
 
+export const createCryptoTradeSchema = z.object({
+  side: z.enum(CRYPTO_TRADE_SIDES),
+  coingeckoId: cryptoIdSchema,
+  quantity: quantitySchema,
+  priceQuote: amountNonNegative,
+  quoteCurrency: z.enum(CRYPTO_QUOTE_CURRENCIES).default("EUR"),
+  feeQuote: amountNonNegative.optional().default(0),
+  tradedAt: dateYmd,
+  notes: descriptionSchema,
+});
+
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
 export type CreateIncomeInput = z.infer<typeof createIncomeSchema>;
 export type CreateAssetInput = z.infer<typeof createAssetSchema>;
 export type CreateCreditInput = z.infer<typeof createCreditSchema>;
 export type CreateUpcomingInput = z.infer<typeof createUpcomingSchema>;
 export type CompleteUpcomingInput = z.infer<typeof completeUpcomingSchema>;
+export type CreateCryptoTradeInput = z.infer<typeof createCryptoTradeSchema>;

@@ -134,3 +134,26 @@ export type Upcoming = {
   created_at: string;
   updated_at: string;
 };
+
+export const CRYPTO_TRADE_SIDES = ["buy", "sell"] as const;
+
+export type CryptoTradeSide = (typeof CRYPTO_TRADE_SIDES)[number];
+
+export const CRYPTO_QUOTE_CURRENCIES = ["EUR", "USD", "USDT", "USDC"] as const;
+
+export type CryptoQuoteCurrency = (typeof CRYPTO_QUOTE_CURRENCIES)[number];
+
+export type CryptoTrade = {
+  id: string;
+  user_id: string;
+  side: CryptoTradeSide;
+  coingecko_id: string;
+  quantity: number;
+  price_quote: number;
+  quote_currency: CryptoQuoteCurrency;
+  fee_quote: number;
+  traded_at: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};

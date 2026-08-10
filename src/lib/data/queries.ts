@@ -1,6 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { monthIsoBounds } from "@/lib/date";
-import type { Asset, Credit, Expense, Income, Upcoming } from "@/lib/types";
+import type {
+  Asset,
+  Credit,
+  CryptoTrade,
+  Expense,
+  Income,
+  Upcoming,
+} from "@/lib/types";
 
 export async function getExpensesForMonth(month: Date): Promise<Expense[]> {
   const supabase = await createClient();
@@ -67,5 +74,23 @@ export async function getUpcoming(): Promise<Upcoming[]> {
   return (data ?? []).map((row) => ({
     ...(row as Upcoming),
     converted: Boolean((row as Upcoming).converted),
+  }));
+}
+
+export async function getCryptoTrades(): Promise<CryptoTrade[]> {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from("crypto_trades")
+    .select("*")
+    .order("traded_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  return (data ?? []).map((row) => ({
+    ...(row as CryptoTrade),
+    quantity: Number((row as CryptoTrade).quantity),
+    price_quote: Number((row as CryptoTrade).price_quote),
+    fee_quote: Number((row as CryptoTrade).fee_quote ?? 0),
   }));
 }

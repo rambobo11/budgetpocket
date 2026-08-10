@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Bitcoin,
   CalendarClock,
   FileText,
   HandCoins,
@@ -33,6 +34,12 @@ const moreLinks: {
   description: string;
   icon: LucideIcon;
 }[] = [
+  {
+    href: "/crypto",
+    label: "Crypto",
+    description: "Trades, buy/sell, PnL",
+    icon: Bitcoin,
+  },
   {
     href: "/dashboard",
     label: "Stats",

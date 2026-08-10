@@ -4,7 +4,8 @@ import "server-only";
  * Holdings Binance (snapshot) — serveur uniquement (pas dans le bundle client).
  */
 export const BINANCE_HOLDINGS = [
-  { coingeckoId: "usd-coin", quantity: 440.02281839 },
+  { coingeckoId: "usd-coin", quantity: 400.27585839 },
+  { coingeckoId: "bitcoin", quantity: 0.00061938 },
   { coingeckoId: "solana", quantity: 4.51826703 },
   { coingeckoId: "cardano", quantity: 187.18818476 },
   { coingeckoId: "aave", quantity: 0.39635759 },
