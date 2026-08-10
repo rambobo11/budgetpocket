@@ -62,9 +62,37 @@ export function monthIsoBounds(month: Date) {
 /**
  * Stocke une date calendaire (yyyy-MM-dd) à midi UTC —
  * indépendant du TZ du process (dev local vs Vercel).
+ * Utile pour imports / bornes sans heure connue.
  */
 export function calendarDateToIso(dateYmd: string): string {
   return `${dateYmd}T12:00:00.000Z`;
+}
+
+/**
+ * Date calendaire + heure courante Europe/Paris → ISO UTC.
+ * Permet un tri chronologique (même jour) et l’affichage d’heures.
+ */
+export function calendarDateWithNowTimeToIso(
+  dateYmd: string,
+  now: Date = new Date()
+): string {
+  if (!isRealCalendarDate(dateYmd)) {
+    return calendarDateToIso(dateYmd);
+  }
+
+  const parisNow = toZonedTime(now, APP_TIMEZONE);
+  const [year, month, day] = dateYmd.split("-").map(Number);
+  const localWall = new Date(
+    year,
+    month - 1,
+    day,
+    parisNow.getHours(),
+    parisNow.getMinutes(),
+    parisNow.getSeconds(),
+    parisNow.getMilliseconds()
+  );
+
+  return fromZonedTime(localWall, APP_TIMEZONE).toISOString();
 }
 
 /** Vérifie qu’une chaîne yyyy-MM-dd est un jour calendaire réel. */

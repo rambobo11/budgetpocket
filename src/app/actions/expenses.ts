@@ -1,6 +1,6 @@
 "use server";
 
-import { calendarDateToIso } from "@/lib/date";
+import { calendarDateWithNowTimeToIso } from "@/lib/date";
 import { AuthError, getAuthedClient } from "@/lib/security/auth";
 import { fail, ok, type ActionResult } from "@/lib/security/action-result";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -43,7 +43,7 @@ export async function createExpenseAction(
         category,
         description,
         payment_method: paymentMethod,
-        created_at: calendarDateToIso(date),
+        created_at: calendarDateWithNowTimeToIso(date),
       })
       .select()
       .single();

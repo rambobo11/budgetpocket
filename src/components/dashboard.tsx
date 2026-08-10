@@ -48,7 +48,15 @@ export function Dashboard({ initialExpenses }: DashboardProps) {
   const canGoNext = !isSameMonth(selectedMonth, nowInAppTz());
 
   function handleExpenseAdded(expense: Expense) {
-    setExpenses((previous) => [expense, ...previous].slice(0, 100));
+    setExpenses((previous) =>
+      [expense, ...previous]
+        .sort((a, b) => {
+          const byTime = b.created_at.localeCompare(a.created_at);
+          if (byTime !== 0) return byTime;
+          return b.id.localeCompare(a.id);
+        })
+        .slice(0, 100)
+    );
   }
 
   function handleExpenseDeleted(id: string) {

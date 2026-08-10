@@ -1,7 +1,7 @@
 "use server";
 
 import { format } from "date-fns";
-import { calendarDateToIso, nowInAppTz } from "@/lib/date";
+import { calendarDateToIso, calendarDateWithNowTimeToIso, nowInAppTz } from "@/lib/date";
 import { suggestBudgetMonth } from "@/lib/incomes";
 import { AuthError, getAuthedClient } from "@/lib/security/auth";
 import { fail, ok, type ActionResult } from "@/lib/security/action-result";
@@ -210,7 +210,7 @@ export async function completeUpcomingAction(
         category,
         description: item.title,
         payment_method: paymentMethod ?? "cb",
-        created_at: calendarDateToIso(eventDate),
+        created_at: calendarDateWithNowTimeToIso(eventDate),
       });
       if (expenseError) {
         await rollbackClaim();

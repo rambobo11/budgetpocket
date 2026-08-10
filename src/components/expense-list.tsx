@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { format } from "date-fns";
+import { useMemo, useState } from "react";
+import { formatInTimeZone } from "date-fns-tz";
 import { fr } from "date-fns/locale";
 import { Loader2, Receipt, Trash2 } from "lucide-react";
 import { deleteExpenseAction } from "@/app/actions/expenses";
+import { APP_TIMEZONE } from "@/lib/date";
 import { formatEuro } from "@/lib/format";
 import type { Expense } from "@/lib/types";
 import { usePrivacy } from "@/components/privacy-provider";
@@ -17,6 +18,14 @@ type ExpenseListProps = {
   initialVisible?: number;
 };
 
+function sortExpensesNewestFirst(expenses: Expense[]) {
+  return [...expenses].sort((a, b) => {
+    const byTime = b.created_at.localeCompare(a.created_at);
+    if (byTime !== 0) return byTime;
+    return b.id.localeCompare(a.id);
+  });
+}
+
 export function ExpenseList({
   expenses,
   onExpenseDeleted,
@@ -26,10 +35,17 @@ export function ExpenseList({
   const [expanded, setExpanded] = useState(false);
   const { mask } = usePrivacy();
 
-  const hasMore = expenses.length > initialVisible;
+  const sortedExpenses = useMemo(
+    () => sortExpensesNewestFirst(expenses),
+    [expenses]
+  );
+
+  const hasMore = sortedExpenses.length > initialVisible;
   const visibleExpenses =
-    expanded || !hasMore ? expenses : expenses.slice(0, initialVisible);
-  const hiddenCount = expenses.length - initialVisible;
+    expanded || !hasMore
+      ? sortedExpenses
+      : sortedExpenses.slice(0, initialVisible);
+  const hiddenCount = sortedExpenses.length - initialVisible;
 
   async function handleDelete(expense: Expense) {
     const label = expense.description
@@ -54,7 +70,7 @@ export function ExpenseList({
     onExpenseDeleted?.(expense.id);
   }
 
-  if (expenses.length === 0) {
+  if (sortedExpenses.length === 0) {
     return (
       <div className="rounded-[1.75rem] border border-dashed border-zinc-200 bg-white/60 px-6 py-14 text-center dark:border-zinc-700 dark:bg-zinc-900/40">
         <div className="mx-auto mb-3 flex size-11 items-center justify-center rounded-full bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500">
@@ -77,7 +93,7 @@ export function ExpenseList({
           Dépenses du mois
         </h2>
         <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
-          {expenses.length} dépense{expenses.length > 1 ? "s" : ""}
+          {sortedExpenses.length} dépense{sortedExpenses.length > 1 ? "s" : ""}
         </p>
       </div>
 
@@ -99,9 +115,12 @@ export function ExpenseList({
                 ) : null}
               </div>
               <p className="mt-0.5 truncate text-sm text-zinc-500 dark:text-zinc-400">
-                {format(new Date(expense.created_at), "d MMM yyyy", {
-                  locale: fr,
-                })}
+                {formatInTimeZone(
+                  expense.created_at,
+                  APP_TIMEZONE,
+                  "d MMM yyyy · HH:mm",
+                  { locale: fr }
+                )}
                 {expense.description ? ` · ${expense.description}` : ""}
               </p>
             </div>
