@@ -3,10 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Bitcoin, Loader2, Trash2, TrendingDown, TrendingUp } from "lucide-react";
+import {
+  Loader2,
+  RefreshCw,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
 import {
   deleteCryptoTradeAction,
-  seedBinanceBtcBuyAction,
+  syncBinancePortfolioAction,
 } from "@/app/actions/crypto-trades";
 import { CryptoTradeForm } from "@/components/crypto-trade-form";
 import { AppNav } from "@/components/app-nav";
@@ -16,8 +22,13 @@ import { PrivacyToggle } from "@/components/privacy-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { usePrivacy } from "@/components/privacy-provider";
 import { Button } from "@/components/ui/button";
-import { fetchCryptoPrices, formatCryptoQuantity, getCryptoCoin } from "@/lib/crypto";
 import {
+  fetchCryptoPrices,
+  formatCryptoQuantity,
+  getCryptoCoin,
+} from "@/lib/crypto";
+import {
+  computeCryptoPortfolioKpis,
   computeCryptoPositions,
   formatQuotePrice,
   tradeNotionalQuote,
@@ -35,7 +46,7 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
   const [trades, setTrades] = useState(initialTrades);
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [pricesLoading, setPricesLoading] = useState(false);
-  const [seedLoading, setSeedLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -70,31 +81,25 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
     () => computeCryptoPositions(trades, prices),
     [trades, prices]
   );
-
-  const totalValue = positions.reduce(
-    (sum, position) => sum + (position.valueEur ?? 0),
-    0
+  const kpis = useMemo(
+    () => computeCryptoPortfolioKpis(positions),
+    [positions]
   );
-  const totalPnl = positions.reduce(
-    (sum, position) => sum + (position.unrealizedPnlEur ?? 0),
-    0
-  );
+  const positivePnl = kpis.floatingPnlEur >= 0;
 
-  async function handleSeedBtc() {
-    setSeedLoading(true);
+  async function handleSyncBinance() {
+    setSyncLoading(true);
     setMessage(null);
-    const result = await seedBinanceBtcBuyAction();
-    setSeedLoading(false);
+    const result = await syncBinancePortfolioAction();
+    setSyncLoading(false);
     if (!result.ok) {
       setMessage(result.error);
       return;
     }
-    if (result.data.created) {
-      setTrades((previous) => [result.data.trade, ...previous]);
-      setMessage("Achat BTC (~40 USDC) ajouté + patrimoine Binance aligné.");
-    } else {
-      setMessage("Achat BTC déjà enregistré. Patrimoine Binance réaligné.");
-    }
+    setTrades(result.data.trades);
+    setMessage(
+      `Sync OK · ${result.data.assetsUpserted} actifs Binance · ${result.data.tradesCreated} trades coût ajoutés (BTC inclus).`
+    );
   }
 
   async function handleDelete(trade: CryptoTrade) {
@@ -126,7 +131,7 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
             Crypto
           </h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Trades · prix d’achat / vente · PnL latent
+            Positions · coût · floating PnL (type Binance)
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
@@ -143,115 +148,179 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
-                Positions
+                Valeur estimée
               </p>
               <p className="mt-2 text-3xl font-semibold tracking-tight text-zinc-900 tabular-nums dark:text-zinc-50">
-                {mask(formatEuro(totalValue))}
+                {mask(formatEuro(kpis.marketValueEur))}
               </p>
               <p
                 className={`mt-2 inline-flex items-center gap-1.5 text-sm font-semibold tabular-nums ${
-                  totalPnl >= 0
+                  positivePnl
                     ? "text-emerald-700 dark:text-emerald-400"
                     : "text-rose-700 dark:text-rose-400"
                 }`}
               >
-                {totalPnl >= 0 ? (
+                {positivePnl ? (
                   <TrendingUp className="size-3.5" />
                 ) : (
                   <TrendingDown className="size-3.5" />
                 )}
-                {mask(formatSignedEuro(totalPnl))} latent
-                {pricesLoading ? " · prix…" : ""}
+                Floating PnL {mask(formatSignedEuro(kpis.floatingPnlEur))}
+                {kpis.floatingPnlPercent != null
+                  ? ` (${formatSignedPercent(kpis.floatingPnlPercent)})`
+                  : ""}
               </p>
+              {pricesLoading ? (
+                <p className="mt-1 text-xs text-zinc-500">Maj des prix…</p>
+              ) : null}
             </div>
             <Button
               type="button"
-              variant="outline"
-              disabled={seedLoading}
-              onClick={() => void handleSeedBtc()}
-              className="h-10 rounded-full"
+              disabled={syncLoading}
+              onClick={() => void handleSyncBinance()}
+              className="h-10 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
             >
-              {seedLoading ? (
+              {syncLoading ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
-                <Bitcoin className="size-4" />
+                <RefreshCw className="size-4" />
               )}
-              Ajouter mon achat BTC
+              Sync Binance (BTC + coins)
             </Button>
           </div>
           {message ? (
             <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-300">{message}</p>
-          ) : null}
+          ) : (
+            <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+              Lance Sync une fois : ajoute BTC, met à jour les qtés Patrimoine, et
+              remplit les prix de revient Binance.
+            </p>
+          )}
         </section>
 
-        {positions.length > 0 ? (
-          <section className="rounded-[1.75rem] border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="border-b border-zinc-100 px-5 py-4 dark:border-zinc-800 sm:px-6">
-              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                Ouvertes
-              </h2>
-              <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
-                Quantité restante · prix moyen · vs live
-              </p>
-            </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="rounded-[1.5rem] border border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+            <p className="text-[11px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
+              Coût
+            </p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+              {mask(formatEuro(kpis.costEur))}
+            </p>
+          </div>
+          <div className="rounded-[1.5rem] border border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+            <p className="text-[11px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
+              Marché
+            </p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+              {mask(formatEuro(kpis.marketValueEur))}
+            </p>
+          </div>
+          <div className="rounded-[1.5rem] border border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+            <p className="text-[11px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
+              En gain
+            </p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+              {kpis.winners}
+            </p>
+          </div>
+          <div className="rounded-[1.5rem] border border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+            <p className="text-[11px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
+              En perte
+            </p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-rose-700 dark:text-rose-400">
+              {kpis.losers}
+            </p>
+          </div>
+        </div>
+
+        <section className="rounded-[1.75rem] border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="border-b border-zinc-100 px-5 py-4 dark:border-zinc-800 sm:px-6">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              Mes assets
+            </h2>
+            <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+              Prix live / coût · floating PnL · {kpis.positionCount} position
+              {kpis.positionCount > 1 ? "s" : ""}
+            </p>
+          </div>
+
+          {positions.length === 0 ? (
+            <p className="px-5 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
+              Aucune position. Tape « Sync Binance » pour importer BTC + tes
+              coins.
+            </p>
+          ) : (
             <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
-              {positions.map((position) => (
-                <li key={position.coingeckoId} className="px-5 py-4 sm:px-6">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-medium text-zinc-900 dark:text-zinc-50">
-                        {position.name}{" "}
-                        <span className="text-zinc-500">{position.symbol}</span>
-                      </p>
-                      <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
-                        {mask(
-                          formatCryptoQuantity(
-                            position.quantity,
-                            position.symbol
-                          )
-                        )}
-                        {position.avgBuyPriceQuote != null
-                          ? ` · moy. ${mask(
-                              formatQuotePrice(
-                                position.avgBuyPriceQuote,
-                                position.quoteCurrency
+              {positions.map((position) => {
+                const pnlPositive = (position.unrealizedPnlEur ?? 0) >= 0;
+                return (
+                  <li key={position.coingeckoId} className="px-5 py-4 sm:px-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium text-zinc-900 dark:text-zinc-50">
+                          {position.symbol}{" "}
+                          <span className="font-normal text-zinc-500">
+                            {position.name}
+                          </span>
+                        </p>
+                        <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+                          {mask(
+                            formatCryptoQuantity(
+                              position.quantity,
+                              position.symbol
+                            )
+                          )}
+                          {position.valueEur != null
+                            ? ` · ${mask(formatEuro(position.valueEur))}`
+                            : ""}
+                        </p>
+                        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                          Live{" "}
+                          {position.livePriceEur != null
+                            ? mask(formatEuro(position.livePriceEur))
+                            : "—"}
+                          {" / coût "}
+                          {position.avgBuyPriceQuote != null
+                            ? mask(
+                                formatQuotePrice(
+                                  position.avgBuyPriceQuote,
+                                  position.quoteCurrency
+                                )
                               )
-                            )}`
-                          : ""}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-                        {position.valueEur != null
-                          ? mask(formatEuro(position.valueEur))
-                          : "—"}
-                      </p>
-                      {position.unrealizedPnlEur != null ? (
+                            : "—"}
+                        </p>
+                      </div>
+                      <div className="text-right">
                         <p
-                          className={`mt-0.5 text-sm tabular-nums ${
-                            position.unrealizedPnlEur >= 0
+                          className={`text-sm font-semibold tabular-nums ${
+                            pnlPositive
                               ? "text-emerald-700 dark:text-emerald-400"
                               : "text-rose-700 dark:text-rose-400"
                           }`}
                         >
-                          {mask(formatSignedEuro(position.unrealizedPnlEur))}
-                          {position.unrealizedPnlPercent != null
-                            ? ` · ${formatSignedPercent(position.unrealizedPnlPercent)}`
-                            : ""}
+                          {position.unrealizedPnlEur != null
+                            ? mask(formatSignedEuro(position.unrealizedPnlEur))
+                            : "—"}
                         </p>
-                      ) : null}
-                      {position.livePriceEur != null ? (
-                        <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-                          live {mask(formatEuro(position.livePriceEur))}
-                        </p>
-                      ) : null}
+                        {position.unrealizedPnlPercent != null ? (
+                          <p
+                            className={`mt-0.5 text-xs tabular-nums ${
+                              pnlPositive
+                                ? "text-emerald-700/80 dark:text-emerald-400/80"
+                                : "text-rose-700/80 dark:text-rose-400/80"
+                            }`}
+                          >
+                            {formatSignedPercent(position.unrealizedPnlPercent)}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
-          </section>
-        ) : null}
+          )}
+        </section>
 
         <CryptoTradeForm
           onCreated={(trade) => {
@@ -263,7 +332,7 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
         <section className="rounded-[1.75rem] border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900">
           <div className="border-b border-zinc-100 px-5 py-4 dark:border-zinc-800 sm:px-6">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-              Historique
+              Historique trades
             </h2>
             <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
               {trades.length} trade{trades.length > 1 ? "s" : ""}
@@ -272,15 +341,17 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
 
           {trades.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
-              Aucun trade. Ajoute ton achat BTC ou saisis un trade.
+              Aucun trade pour l’instant.
             </p>
           ) : (
             <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {trades.map((trade) => {
                 const coin = getCryptoCoin(trade.coingecko_id);
-                const dateLabel = format(parseISO(trade.traded_at), "d MMM yyyy", {
-                  locale: fr,
-                });
+                const dateLabel = format(
+                  parseISO(trade.traded_at),
+                  "d MMM yyyy",
+                  { locale: fr }
+                );
                 return (
                   <li key={trade.id} className="px-5 py-4 sm:px-6">
                     <div className="flex items-start justify-between gap-3">
@@ -315,7 +386,6 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
                               trade.quote_currency
                             )
                           )}
-                          {trade.notes ? ` · ${trade.notes}` : ""}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -350,10 +420,6 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
             </ul>
           )}
         </section>
-
-        <p className="text-center text-xs text-zinc-500 dark:text-zinc-400">
-          Actions (bourse) : à venir. Stablecoins ≈ EUR pour le PnL.
-        </p>
       </div>
     </PageShell>
   );

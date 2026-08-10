@@ -1,6 +1,10 @@
 "use server";
 
 import { format } from "date-fns";
+import {
+  BINANCE_COST_SEED_NOTE,
+  BINANCE_HOLDINGS,
+} from "@/lib/binance-holdings";
 import { cryptoValueEur, getCryptoCoin } from "@/lib/crypto";
 import { fetchCoinGeckoPricesEur } from "@/lib/crypto-prices";
 import { nowInAppTz } from "@/lib/date";
@@ -53,8 +57,9 @@ export async function createCryptoTradeAction(
     }
 
     const data = parsed.data;
-    const coin = getCryptoCoin(data.coingeckoId);
-    if (!coin) return fail("Crypto non supportée.");
+    if (!getCryptoCoin(data.coingeckoId)) {
+      return fail("Crypto non supportée.");
+    }
 
     const now = new Date().toISOString();
     const { data: row, error } = await supabase
@@ -125,146 +130,181 @@ export async function deleteCryptoTradeAction(
 }
 
 /**
- * Enregistre l’achat BTC Binance (~40 USDC) + aligne l’actif Binance USDC/BTC.
+ * Sync Patrimoine Binance (qté BTC/USDC/…) + seed trades au prix de revient Binance.
  */
-export async function seedBinanceBtcBuyAction(): Promise<
-  ActionResult<{ trade: CryptoTrade; created: boolean }>
+export async function syncBinancePortfolioAction(): Promise<
+  ActionResult<{
+    trades: CryptoTrade[];
+    tradesCreated: number;
+    assetsUpserted: number;
+  }>
 > {
   try {
     const { user, supabase } = await getAuthedClient();
-    const limited = rateLimit(`crypto-trade:seed-btc:${user.id}`, {
-      limit: 3,
+    const limited = rateLimit(`crypto-trade:sync-binance:${user.id}`, {
+      limit: 5,
       windowMs: 60_000,
     });
     if (!limited.ok) {
-      return fail("Action déjà lancée récemment.");
+      return fail("Sync déjà lancée récemment. Attends un peu.");
     }
 
-    const btcQty = 0.00061938;
-    const usdcSpent = 40;
-    const priceQuote = usdcSpent / btcQty;
-    const tradedAt = format(nowInAppTz(), "yyyy-MM-dd");
-    const noteTag = "seed:binance-btc-usdc-40";
-
-    const { data: existing, error: existingError } = await supabase
-      .from("crypto_trades")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("coingecko_id", "bitcoin")
-      .eq("notes", noteTag)
-      .maybeSingle();
-
-    if (existingError) {
-      return fail(
-        missingTableHint(existingError.message) ??
-          "Impossible de vérifier les trades."
-      );
-    }
-
-    let trade: CryptoTrade;
-    let created = false;
-
-    if (existing) {
-      trade = asTrade(existing as Record<string, unknown>);
-    } else {
-      const now = new Date().toISOString();
-      const { data: row, error } = await supabase
-        .from("crypto_trades")
-        .insert({
-          user_id: user.id,
-          side: "buy",
-          coingecko_id: "bitcoin",
-          quantity: btcQty,
-          price_quote: priceQuote,
-          quote_currency: "USDC",
-          fee_quote: 0,
-          traded_at: tradedAt,
-          notes: noteTag,
-          updated_at: now,
-        })
-        .select()
-        .single();
-
-      if (error || !row) {
-        return fail(
-          missingTableHint(error?.message) ??
-            "Impossible d'ajouter l'achat BTC."
-        );
-      }
-      trade = asTrade(row as Record<string, unknown>);
-      created = true;
-    }
-
-    // Aligne patrimoine Binance (USDC qty + BTC asset)
+    const ids = BINANCE_HOLDINGS.map((h) => h.coingeckoId);
     let prices: Record<string, number>;
     try {
-      prices = await fetchCoinGeckoPricesEur(["bitcoin", "usd-coin"]);
+      prices = await fetchCoinGeckoPricesEur(ids);
     } catch {
-      return ok({ trade, created });
+      return fail("Impossible de récupérer les prix CoinGecko.");
     }
 
     const now = new Date().toISOString();
-    const btcPrice = prices.bitcoin;
-    const usdcPrice = prices["usd-coin"];
+    const tradedAt = format(nowInAppTz(), "yyyy-MM-dd");
 
-    if (btcPrice != null) {
-      const valueEur = cryptoValueEur(btcQty, btcPrice);
-      const { data: btcAsset } = await supabase
-        .from("assets")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("asset_type", "Compte Binance")
-        .eq("coingecko_id", "bitcoin")
-        .maybeSingle();
+    const { data: existingAssets } = await supabase
+      .from("assets")
+      .select("id, coingecko_id")
+      .eq("user_id", user.id)
+      .eq("asset_type", "Compte Binance");
 
-      if (btcAsset?.id) {
-        await supabase
+    const assetByCoin = new Map(
+      (existingAssets ?? [])
+        .filter((row) => row.coingecko_id)
+        .map((row) => [row.coingecko_id as string, row.id as string])
+    );
+
+    let assetsUpserted = 0;
+
+    for (const holding of BINANCE_HOLDINGS) {
+      const coin = getCryptoCoin(holding.coingeckoId);
+      const price = prices[holding.coingeckoId];
+      if (!coin || price == null) continue;
+
+      const valueEur = cryptoValueEur(holding.quantity, price);
+      const existingId = assetByCoin.get(holding.coingeckoId);
+
+      if (existingId) {
+        const { error } = await supabase
           .from("assets")
           .update({
-            quantity: btcQty,
+            quantity: holding.quantity,
             value_original: valueEur,
             value_eur: valueEur,
             currency: "EUR",
-            name: "Bitcoin (BTC)",
+            name: `${coin.name} (${coin.symbol})`,
+            notes: "Binance",
             updated_at: now,
           })
-          .eq("id", btcAsset.id)
+          .eq("id", existingId)
           .eq("user_id", user.id);
+        if (!error) assetsUpserted += 1;
       } else {
-        await supabase.from("assets").insert({
+        const { error } = await supabase.from("assets").insert({
           user_id: user.id,
-          name: "Bitcoin (BTC)",
+          name: `${coin.name} (${coin.symbol})`,
           asset_type: "Compte Binance",
           currency: "EUR",
           value_original: valueEur,
           value_eur: valueEur,
-          quantity: btcQty,
-          coingecko_id: "bitcoin",
+          quantity: holding.quantity,
+          coingecko_id: holding.coingeckoId,
           notes: "Binance",
           updated_at: now,
         });
+        if (!error) assetsUpserted += 1;
       }
     }
 
-    const usdcQty = 400.27585839;
-    if (usdcPrice != null) {
-      const valueEur = cryptoValueEur(usdcQty, usdcPrice);
-      await supabase
-        .from("assets")
-        .update({
-          quantity: usdcQty,
-          value_original: valueEur,
-          value_eur: valueEur,
-          currency: "EUR",
-          updated_at: now,
-        })
-        .eq("user_id", user.id)
-        .eq("asset_type", "Compte Binance")
-        .eq("coingecko_id", "usd-coin");
+    const { data: existingSeeds, error: seedsError } = await supabase
+      .from("crypto_trades")
+      .select("coingecko_id")
+      .eq("user_id", user.id)
+      .eq("notes", BINANCE_COST_SEED_NOTE);
+
+    if (seedsError) {
+      return fail(
+        missingTableHint(seedsError.message) ??
+          "Impossible de lire les trades seed."
+      );
     }
 
-    return ok({ trade, created });
+    const seededCoins = new Set(
+      (existingSeeds ?? []).map((row) => row.coingecko_id as string)
+    );
+
+    const tradeRows = BINANCE_HOLDINGS.flatMap((holding) => {
+      if (holding.avgCostUsdt == null) return [];
+      if (seededCoins.has(holding.coingeckoId)) return [];
+      if (!getCryptoCoin(holding.coingeckoId)) return [];
+
+      return [
+        {
+          user_id: user.id,
+          side: "buy" as const,
+          coingecko_id: holding.coingeckoId,
+          quantity: holding.quantity,
+          price_quote: holding.avgCostUsdt,
+          quote_currency: "USDT" as const,
+          fee_quote: 0,
+          traded_at: tradedAt,
+          notes: BINANCE_COST_SEED_NOTE,
+          updated_at: now,
+        },
+      ];
+    });
+
+    let createdTrades: CryptoTrade[] = [];
+    if (tradeRows.length > 0) {
+      const { data, error } = await supabase
+        .from("crypto_trades")
+        .insert(tradeRows)
+        .select();
+      if (error || !data) {
+        return fail(
+          missingTableHint(error?.message) ??
+            "Patrimoine OK, mais trades non créés."
+        );
+      }
+      createdTrades = data.map((row) =>
+        asTrade(row as Record<string, unknown>)
+      );
+    }
+
+    const { data: allTrades } = await supabase
+      .from("crypto_trades")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("traded_at", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    return ok({
+      trades: (allTrades ?? []).map((row) =>
+        asTrade(row as Record<string, unknown>)
+      ),
+      tradesCreated: createdTrades.length,
+      assetsUpserted,
+    });
   } catch (error) {
     return mapAuthError(error);
   }
+}
+
+/** @deprecated Use syncBinancePortfolioAction */
+export async function seedBinanceBtcBuyAction(): Promise<
+  ActionResult<{ trade: CryptoTrade; created: boolean }>
+> {
+  const result = await syncBinancePortfolioAction();
+  if (!result.ok) return fail(result.error);
+
+  const btc = result.data.trades.find(
+    (trade) => trade.coingecko_id === "bitcoin" && trade.side === "buy"
+  );
+  if (!btc) {
+    return fail("BTC introuvable après sync.");
+  }
+
+  return ok({
+    trade: btc,
+    created: result.data.tradesCreated > 0,
+  });
 }

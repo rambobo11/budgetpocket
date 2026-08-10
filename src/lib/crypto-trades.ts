@@ -8,25 +8,31 @@ export type CryptoPosition = {
   name: string;
   quantity: number;
   avgBuyPriceQuote: number | null;
-  /** Devise dominante des achats restants (approx.). */
   quoteCurrency: CryptoQuoteCurrency | null;
   costQuote: number;
+  costEur: number;
   livePriceEur: number | null;
   valueEur: number | null;
-  /** PnL latent en EUR si prix live dispo. */
   unrealizedPnlEur: number | null;
   unrealizedPnlPercent: number | null;
 };
 
-/** Coût total d’un trade dans sa devise de cotation. */
+export type CryptoPortfolioKpis = {
+  marketValueEur: number;
+  costEur: number;
+  floatingPnlEur: number;
+  floatingPnlPercent: number | null;
+  winners: number;
+  losers: number;
+  positionCount: number;
+};
+
 export function tradeNotionalQuote(trade: CryptoTrade): number {
-  return Number(trade.quantity) * Number(trade.price_quote) + Number(trade.fee_quote);
+  return (
+    Number(trade.quantity) * Number(trade.price_quote) + Number(trade.fee_quote)
+  );
 }
 
-/**
- * Positions ouvertes (FIFO simplifié) + coût moyen des lots restants.
- * Le PnL EUR utilise une approx. USDC/USDT/USD ≈ EUR si pas de taux exact.
- */
 export function computeCryptoPositions(
   trades: CryptoTrade[],
   livePricesEur: Record<string, number>
@@ -91,15 +97,17 @@ export function computeCryptoPositions(
     const quoteCurrency = lots[0]?.quoteCurrency ?? null;
     const coin = getCryptoCoin(coingeckoId);
     const livePriceEur = livePricesEur[coingeckoId] ?? null;
-    const costEurApprox = quoteToEurApprox(costQuote, quoteCurrency);
+    const costEur = quoteToEurApprox(costQuote, quoteCurrency);
     const valueEur =
       livePriceEur != null ? Number((quantity * livePriceEur).toFixed(2)) : null;
     const unrealizedPnlEur =
-      valueEur != null ? Number((valueEur - costEurApprox).toFixed(2)) : null;
+      valueEur != null ? Number((valueEur - costEur).toFixed(2)) : null;
     const unrealizedPnlPercent =
-      unrealizedPnlEur != null && costEurApprox > 0
-        ? (unrealizedPnlEur / costEurApprox) * 100
-        : null;
+      unrealizedPnlEur != null && costEur > 0
+        ? (unrealizedPnlEur / costEur) * 100
+        : unrealizedPnlEur != null && costEur === 0 && valueEur != null
+          ? 100
+          : null;
 
     positions.push({
       coingeckoId,
@@ -109,6 +117,7 @@ export function computeCryptoPositions(
       avgBuyPriceQuote,
       quoteCurrency,
       costQuote,
+      costEur,
       livePriceEur,
       valueEur,
       unrealizedPnlEur,
@@ -116,12 +125,36 @@ export function computeCryptoPositions(
     });
   }
 
-  return positions.sort(
-    (a, b) => (b.valueEur ?? 0) - (a.valueEur ?? 0)
-  );
+  return positions.sort((a, b) => (b.valueEur ?? 0) - (a.valueEur ?? 0));
 }
 
-/** Approx. stablecoins / USD → EUR (1:1). Suffisant pour un suivi perso. */
+export function computeCryptoPortfolioKpis(
+  positions: CryptoPosition[]
+): CryptoPortfolioKpis {
+  const marketValueEur = positions.reduce(
+    (sum, p) => sum + (p.valueEur ?? 0),
+    0
+  );
+  const costEur = positions.reduce((sum, p) => sum + p.costEur, 0);
+  const floatingPnlEur = Number((marketValueEur - costEur).toFixed(2));
+  const floatingPnlPercent =
+    costEur > 0 ? (floatingPnlEur / costEur) * 100 : null;
+  const winners = positions.filter(
+    (p) => (p.unrealizedPnlEur ?? 0) > 0
+  ).length;
+  const losers = positions.filter((p) => (p.unrealizedPnlEur ?? 0) < 0).length;
+
+  return {
+    marketValueEur,
+    costEur,
+    floatingPnlEur,
+    floatingPnlPercent,
+    winners,
+    losers,
+    positionCount: positions.length,
+  };
+}
+
 export function quoteToEurApprox(
   amount: number,
   quote: CryptoQuoteCurrency | null
@@ -136,6 +169,6 @@ export function formatQuotePrice(
 ) {
   if (quote === "EUR" || quote == null) return formatEuro(amount);
   return `${new Intl.NumberFormat("fr-FR", {
-    maximumFractionDigits: amount >= 1 ? 2 : 6,
+    maximumFractionDigits: amount >= 100 ? 2 : amount >= 1 ? 4 : 6,
   }).format(amount)} ${quote}`;
 }

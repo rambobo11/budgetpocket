@@ -328,73 +328,83 @@ export async function importBinanceHoldingsAction(): Promise<
 
     const { data: existing } = await supabase
       .from("assets")
-      .select("coingecko_id")
+      .select("id, coingecko_id")
       .eq("user_id", user.id)
       .eq("asset_type", "Compte Binance");
 
-    const existingIds = new Set(
+    const existingByCoin = new Map(
       (existing ?? [])
-        .map((row) => row.coingecko_id as string | null)
-        .filter(Boolean)
+        .filter((row) => row.coingecko_id)
+        .map((row) => [row.coingecko_id as string, row.id as string])
     );
-
-    const toImport = BINANCE_HOLDINGS.filter(
-      (holding) => !existingIds.has(holding.coingeckoId)
-    );
-
-    if (toImport.length === 0) {
-      return ok({ added: [], skipped: BINANCE_HOLDINGS.length });
-    }
 
     let prices: Record<string, number>;
     try {
       prices = await fetchCoinGeckoPricesEur(
-        toImport.map((holding) => holding.coingeckoId)
+        BINANCE_HOLDINGS.map((holding) => holding.coingeckoId)
       );
     } catch {
       return fail("Impossible de récupérer les prix CoinGecko.");
     }
 
     const now = new Date().toISOString();
-    const rows = toImport.flatMap((holding) => {
+    const added: Asset[] = [];
+    let skipped = 0;
+
+    for (const holding of BINANCE_HOLDINGS) {
       const coin = getCryptoCoin(holding.coingeckoId);
       const price = prices[holding.coingeckoId];
-      if (!coin || price == null) return [];
+      if (!coin || price == null) {
+        skipped += 1;
+        continue;
+      }
 
       const valueEur = cryptoValueEur(holding.quantity, price);
-      return [
-        {
-          user_id: user.id,
-          name: `${coin.name} (${coin.symbol})`,
-          asset_type: "Compte Binance" as const,
-          currency: "EUR" as const,
-          value_original: valueEur,
-          value_eur: valueEur,
-          quantity: holding.quantity,
-          coingecko_id: holding.coingeckoId,
-          notes: "Binance",
-          updated_at: now,
-        },
-      ];
-    });
+      const existingId = existingByCoin.get(holding.coingeckoId);
 
-    if (rows.length === 0) {
-      return fail("Aucun prix trouvé pour ces cryptos.");
-    }
-
-    const { data, error } = await supabase.from("assets").insert(rows).select();
-
-    if (error || !data) {
-      return fail(
-        error?.message?.includes("coingecko")
-          ? "Colonne crypto manquante. Exécute add-crypto-coingecko-id.sql."
-          : "Import impossible. Réessaie."
-      );
+      if (existingId) {
+        const { data, error } = await supabase
+          .from("assets")
+          .update({
+            quantity: holding.quantity,
+            value_original: valueEur,
+            value_eur: valueEur,
+            currency: "EUR",
+            name: `${coin.name} (${coin.symbol})`,
+            notes: "Binance",
+            updated_at: now,
+          })
+          .eq("id", existingId)
+          .eq("user_id", user.id)
+          .select()
+          .single();
+        if (!error && data) added.push(data as Asset);
+        else skipped += 1;
+      } else {
+        const { data, error } = await supabase
+          .from("assets")
+          .insert({
+            user_id: user.id,
+            name: `${coin.name} (${coin.symbol})`,
+            asset_type: "Compte Binance" as const,
+            currency: "EUR" as const,
+            value_original: valueEur,
+            value_eur: valueEur,
+            quantity: holding.quantity,
+            coingecko_id: holding.coingeckoId,
+            notes: "Binance",
+            updated_at: now,
+          })
+          .select()
+          .single();
+        if (!error && data) added.push(data as Asset);
+        else skipped += 1;
+      }
     }
 
     return ok({
-      added: data as Asset[],
-      skipped: BINANCE_HOLDINGS.length - toImport.length,
+      added,
+      skipped,
     });
   } catch (error) {
     return mapAuthError(error);
