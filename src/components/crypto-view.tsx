@@ -31,20 +31,41 @@ import {
 import {
   computeCryptoPortfolioKpis,
   computeCryptoPositions,
+  computeCryptoPositionsFromHoldings,
   formatQuotePrice,
   tradeNotionalQuote,
+  type CryptoHoldingInput,
 } from "@/lib/crypto-trades";
 import { formatEuro } from "@/lib/format";
 import { formatSignedEuro, formatSignedPercent } from "@/lib/kpis";
-import type { CryptoTrade } from "@/lib/types";
+import type { Asset, CryptoTrade } from "@/lib/types";
 
 type CryptoViewProps = {
   initialTrades: CryptoTrade[];
+  initialAssets: Asset[];
 };
 
-export function CryptoView({ initialTrades }: CryptoViewProps) {
+function holdingsFromAssets(assets: Asset[]): CryptoHoldingInput[] {
+  const merged = new Map<string, number>();
+  for (const asset of assets) {
+    if (!asset.coingecko_id || asset.quantity == null) continue;
+    const qty = Number(asset.quantity);
+    if (qty <= 0) continue;
+    merged.set(
+      asset.coingecko_id,
+      (merged.get(asset.coingecko_id) ?? 0) + qty
+    );
+  }
+  return [...merged.entries()].map(([coingeckoId, quantity]) => ({
+    coingeckoId,
+    quantity,
+  }));
+}
+
+export function CryptoView({ initialTrades, initialAssets }: CryptoViewProps) {
   const { mask } = usePrivacy();
   const [trades, setTrades] = useState(initialTrades);
+  const [assets, setAssets] = useState(initialAssets);
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [pricesLoading, setPricesLoading] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
@@ -52,10 +73,14 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [lastPriceAt, setLastPriceAt] = useState<Date | null>(null);
 
-  const coinIds = useMemo(
-    () => [...new Set(trades.map((trade) => trade.coingecko_id))],
-    [trades]
-  );
+  const holdings = useMemo(() => holdingsFromAssets(assets), [assets]);
+
+  const coinIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const holding of holdings) ids.add(holding.coingeckoId);
+    for (const trade of trades) ids.add(trade.coingecko_id);
+    return [...ids];
+  }, [holdings, trades]);
 
   async function loadMarketPrices(ids: string[], fresh: boolean) {
     if (ids.length === 0) {
@@ -89,15 +114,21 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- recharge auto quand la liste de coins change
   }, [coinIds.join(",")]);
 
-  const positions = useMemo(
-    () => computeCryptoPositions(trades, prices),
-    [trades, prices]
-  );
+  const positions = useMemo(() => {
+    if (holdings.length > 0) {
+      return computeCryptoPositionsFromHoldings(holdings, trades, prices);
+    }
+    // Avant Sync Binance : fallback sur les qtés issues des trades
+    return computeCryptoPositions(trades, prices);
+  }, [holdings, trades, prices]);
+
   const kpis = useMemo(
     () => computeCryptoPortfolioKpis(positions),
     [positions]
   );
   const positivePnl = kpis.floatingPnlEur >= 0;
+  /** Sync utile uniquement si le wallet Binance n’est pas encore en patrimoine. */
+  const showSyncBinance = holdings.length === 0;
 
   async function handleRefreshPrices() {
     await loadMarketPrices(coinIds, true);
@@ -113,11 +144,17 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
       return;
     }
     setTrades(result.data.trades);
+    setAssets(result.data.assets);
     setMessage(
       `Sync OK · ${result.data.assetsUpserted} actifs Binance · ${result.data.tradesCreated} trades coût ajoutés (BTC inclus).`
     );
     const ids = [
-      ...new Set(result.data.trades.map((trade) => trade.coingecko_id)),
+      ...new Set([
+        ...result.data.assets
+          .map((asset) => asset.coingecko_id)
+          .filter((id): id is string => Boolean(id)),
+        ...result.data.trades.map((trade) => trade.coingecko_id),
+      ]),
     ];
     await loadMarketPrices(ids, true);
   }
@@ -151,7 +188,7 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
             Crypto
           </h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Positions · coût · floating PnL (type Binance)
+            Wallet Binance · coût · floating PnL
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
@@ -190,6 +227,11 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
                   ? ` (${formatSignedPercent(kpis.floatingPnlPercent)})`
                   : ""}
               </p>
+              {kpis.stableValueEur > 0 ? (
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  dont cash / stables {mask(formatEuro(kpis.stableValueEur))}
+                </p>
+              ) : null}
               {pricesLoading ? (
                 <p className="mt-1 text-xs text-zinc-500">Maj des prix…</p>
               ) : lastPriceAt ? (
@@ -213,28 +255,33 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
                 )}
                 Actualiser les prix
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={syncLoading}
-                onClick={() => void handleSyncBinance()}
-                className="h-10 rounded-full"
-              >
-                {syncLoading ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="size-4" />
-                )}
-                Sync Binance (BTC + coins)
-              </Button>
+              {showSyncBinance ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={syncLoading}
+                  onClick={() => void handleSyncBinance()}
+                  className="h-10 rounded-full"
+                >
+                  {syncLoading ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="size-4" />
+                  )}
+                  Sync Binance (BTC + coins)
+                </Button>
+              ) : null}
             </div>
           </div>
           {message ? (
             <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-300">{message}</p>
           ) : (
             <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-              Lance Sync une fois : ajoute BTC, met à jour les qtés Patrimoine, et
-              remplit les prix de revient Binance.
+              Valeur = wallet Binance (USDC inclus). Floating PnL = coins avec
+              prix de revient.
+              {showSyncBinance
+                ? " Sync importe les qtés Patrimoine."
+                : null}
             </p>
           )}
         </section>
@@ -280,15 +327,17 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
               Mes assets
             </h2>
             <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
-              Prix live / coût · floating PnL · {kpis.positionCount} position
+              Qtés wallet · prix live / coût · floating PnL ·{" "}
+              {kpis.positionCount} position
               {kpis.positionCount > 1 ? "s" : ""}
             </p>
           </div>
 
           {positions.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
-              Aucune position. Tape « Sync Binance » pour importer BTC + tes
-              coins.
+              {showSyncBinance
+                ? "Aucune position. Tape « Sync Binance » pour importer BTC + tes coins (USDC inclus)."
+                : "Aucune position pour le moment."}
             </p>
           ) : (
             <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -303,6 +352,11 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
                           <span className="font-normal text-zinc-500">
                             {position.name}
                           </span>
+                          {position.isStable ? (
+                            <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+                              cash
+                            </span>
+                          ) : null}
                         </p>
                         <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
                           {mask(
@@ -316,44 +370,64 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
                             : ""}
                         </p>
                         <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                          Live{" "}
-                          {position.livePriceEur != null
-                            ? mask(formatEuro(position.livePriceEur))
-                            : "—"}
-                          {" / coût "}
-                          {position.avgBuyPriceQuote != null
-                            ? mask(
-                                formatQuotePrice(
-                                  position.avgBuyPriceQuote,
-                                  position.quoteCurrency
-                                )
-                              )
-                            : "—"}
+                          {position.isStable ? (
+                            "Stable · hors floating PnL"
+                          ) : (
+                            <>
+                              Live{" "}
+                              {position.livePriceEur != null
+                                ? mask(formatEuro(position.livePriceEur))
+                                : "—"}
+                              {" / coût "}
+                              {position.avgBuyPriceQuote != null
+                                ? mask(
+                                    formatQuotePrice(
+                                      position.avgBuyPriceQuote,
+                                      position.quoteCurrency
+                                    )
+                                  )
+                                : "—"}
+                            </>
+                          )}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p
-                          className={`text-sm font-semibold tabular-nums ${
-                            pnlPositive
-                              ? "text-emerald-700 dark:text-emerald-400"
-                              : "text-rose-700 dark:text-rose-400"
-                          }`}
-                        >
-                          {position.unrealizedPnlEur != null
-                            ? mask(formatSignedEuro(position.unrealizedPnlEur))
-                            : "—"}
-                        </p>
-                        {position.unrealizedPnlPercent != null ? (
-                          <p
-                            className={`mt-0.5 text-xs tabular-nums ${
-                              pnlPositive
-                                ? "text-emerald-700/80 dark:text-emerald-400/80"
-                                : "text-rose-700/80 dark:text-rose-400/80"
-                            }`}
-                          >
-                            {formatSignedPercent(position.unrealizedPnlPercent)}
+                        {position.isStable ? (
+                          <p className="text-sm font-semibold tabular-nums text-zinc-500 dark:text-zinc-400">
+                            —
                           </p>
-                        ) : null}
+                        ) : (
+                          <>
+                            <p
+                              className={`text-sm font-semibold tabular-nums ${
+                                position.unrealizedPnlEur == null
+                                  ? "text-zinc-500 dark:text-zinc-400"
+                                  : pnlPositive
+                                    ? "text-emerald-700 dark:text-emerald-400"
+                                    : "text-rose-700 dark:text-rose-400"
+                              }`}
+                            >
+                              {position.unrealizedPnlEur != null
+                                ? mask(
+                                    formatSignedEuro(position.unrealizedPnlEur)
+                                  )
+                                : "—"}
+                            </p>
+                            {position.unrealizedPnlPercent != null ? (
+                              <p
+                                className={`mt-0.5 text-xs tabular-nums ${
+                                  pnlPositive
+                                    ? "text-emerald-700/80 dark:text-emerald-400/80"
+                                    : "text-rose-700/80 dark:text-rose-400/80"
+                                }`}
+                              >
+                                {formatSignedPercent(
+                                  position.unrealizedPnlPercent
+                                )}
+                              </p>
+                            ) : null}
+                          </>
+                        )}
                       </div>
                     </div>
                   </li>

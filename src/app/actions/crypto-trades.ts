@@ -12,7 +12,7 @@ import { AuthError, getAuthedClient } from "@/lib/security/auth";
 import { fail, ok, type ActionResult } from "@/lib/security/action-result";
 import { rateLimit } from "@/lib/security/rate-limit";
 import { createCryptoTradeSchema, idSchema } from "@/lib/validation/schemas";
-import type { CryptoTrade } from "@/lib/types";
+import type { Asset, CryptoTrade } from "@/lib/types";
 
 function mapAuthError(error: unknown): ActionResult<never> {
   if (error instanceof AuthError) return fail(error.message);
@@ -135,6 +135,7 @@ export async function deleteCryptoTradeAction(
 export async function syncBinancePortfolioAction(): Promise<
   ActionResult<{
     trades: CryptoTrade[];
+    assets: Asset[];
     tradesCreated: number;
     assetsUpserted: number;
   }>
@@ -269,18 +270,36 @@ export async function syncBinancePortfolioAction(): Promise<
       );
     }
 
-    const { data: allTrades } = await supabase
-      .from("crypto_trades")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("traded_at", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(500);
+    const [{ data: allTrades }, { data: allBinanceAssets }] = await Promise.all([
+      supabase
+        .from("crypto_trades")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("traded_at", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(500),
+      supabase
+        .from("assets")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("asset_type", "Compte Binance")
+        .order("value_eur", { ascending: false }),
+    ]);
+
+    const assets = (allBinanceAssets ?? [])
+      .map((row) => row as Asset)
+      .filter(
+        (asset) =>
+          Boolean(asset.coingecko_id) &&
+          asset.quantity != null &&
+          Number(asset.quantity) > 0
+      );
 
     return ok({
       trades: (allTrades ?? []).map((row) =>
         asTrade(row as Record<string, unknown>)
       ),
+      assets,
       tradesCreated: createdTrades.length,
       assetsUpserted,
     });
