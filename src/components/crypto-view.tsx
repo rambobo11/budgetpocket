@@ -14,6 +14,7 @@ import {
   deleteCryptoTradeAction,
   syncBinancePortfolioAction,
 } from "@/app/actions/crypto-trades";
+import { refreshCryptoPricesAction } from "@/app/actions/assets";
 import { CryptoTradeForm } from "@/components/crypto-trade-form";
 import { AppNav } from "@/components/app-nav";
 import { LogoutButton } from "@/components/logout-button";
@@ -49,33 +50,44 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
   const [syncLoading, setSyncLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [lastPriceAt, setLastPriceAt] = useState<Date | null>(null);
 
   const coinIds = useMemo(
     () => [...new Set(trades.map((trade) => trade.coingecko_id))],
     [trades]
   );
 
-  useEffect(() => {
-    if (coinIds.length === 0) {
+  async function loadMarketPrices(ids: string[], fresh: boolean) {
+    if (ids.length === 0) {
       setPrices({});
       return;
     }
-    let cancelled = false;
     setPricesLoading(true);
-    void fetchCryptoPrices(coinIds)
-      .then((next) => {
-        if (!cancelled) setPrices(next);
-      })
-      .catch(() => {
-        if (!cancelled) setMessage("Prix live indisponibles pour le moment.");
-      })
-      .finally(() => {
-        if (!cancelled) setPricesLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [coinIds]);
+    if (fresh) setMessage(null);
+    try {
+      const next = await fetchCryptoPrices(ids, { fresh });
+      setPrices(next);
+      setLastPriceAt(new Date());
+
+      if (fresh) {
+        const patrimoine = await refreshCryptoPricesAction();
+        if (!patrimoine.ok) {
+          setMessage(`Prix marché OK · Patrimoine : ${patrimoine.error}`);
+        } else {
+          setMessage("Prix marché actualisés · Patrimoine mis à jour.");
+        }
+      }
+    } catch {
+      setMessage("Prix marché indisponibles pour le moment.");
+    } finally {
+      setPricesLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadMarketPrices(coinIds, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recharge auto quand la liste de coins change
+  }, [coinIds.join(",")]);
 
   const positions = useMemo(
     () => computeCryptoPositions(trades, prices),
@@ -86,6 +98,10 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
     [positions]
   );
   const positivePnl = kpis.floatingPnlEur >= 0;
+
+  async function handleRefreshPrices() {
+    await loadMarketPrices(coinIds, true);
+  }
 
   async function handleSyncBinance() {
     setSyncLoading(true);
@@ -100,6 +116,10 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
     setMessage(
       `Sync OK · ${result.data.assetsUpserted} actifs Binance · ${result.data.tradesCreated} trades coût ajoutés (BTC inclus).`
     );
+    const ids = [
+      ...new Set(result.data.trades.map((trade) => trade.coingecko_id)),
+    ];
+    await loadMarketPrices(ids, true);
   }
 
   async function handleDelete(trade: CryptoTrade) {
@@ -172,21 +192,42 @@ export function CryptoView({ initialTrades }: CryptoViewProps) {
               </p>
               {pricesLoading ? (
                 <p className="mt-1 text-xs text-zinc-500">Maj des prix…</p>
+              ) : lastPriceAt ? (
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  Marché à{" "}
+                  {format(lastPriceAt, "HH:mm:ss", { locale: fr })}
+                </p>
               ) : null}
             </div>
-            <Button
-              type="button"
-              disabled={syncLoading}
-              onClick={() => void handleSyncBinance()}
-              className="h-10 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-            >
-              {syncLoading ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <RefreshCw className="size-4" />
-              )}
-              Sync Binance (BTC + coins)
-            </Button>
+            <div className="flex flex-col gap-2 sm:items-end">
+              <Button
+                type="button"
+                disabled={pricesLoading || coinIds.length === 0}
+                onClick={() => void handleRefreshPrices()}
+                className="h-10 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+              >
+                {pricesLoading ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="size-4" />
+                )}
+                Actualiser les prix
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={syncLoading}
+                onClick={() => void handleSyncBinance()}
+                className="h-10 rounded-full"
+              >
+                {syncLoading ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="size-4" />
+                )}
+                Sync Binance (BTC + coins)
+              </Button>
+            </div>
           </div>
           {message ? (
             <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-300">{message}</p>

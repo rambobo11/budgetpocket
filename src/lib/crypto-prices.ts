@@ -25,7 +25,8 @@ export function isAllowedCoinGeckoId(id: string): boolean {
 
 /** Appel direct CoinGecko (serveur uniquement). */
 export async function fetchCoinGeckoPricesEur(
-  ids: string[]
+  ids: string[],
+  options?: { fresh?: boolean }
 ): Promise<Record<string, number>> {
   const allowed = sanitizeCoinGeckoIds(ids);
   if (allowed.length === 0) return {};
@@ -36,7 +37,9 @@ export async function fetchCoinGeckoPricesEur(
 
   const response = await fetch(url.toString(), {
     headers: { Accept: "application/json" },
-    next: { revalidate: 60 },
+    ...(options?.fresh
+      ? { cache: "no-store" as const }
+      : { next: { revalidate: 60 } }),
   });
 
   if (!response.ok) {

@@ -265,7 +265,8 @@ export async function refreshCryptoPricesAction(): Promise<
     let prices: Record<string, number>;
     try {
       prices = await fetchCoinGeckoPricesEur(
-        tracked.map((asset) => asset.coingecko_id!)
+        tracked.map((asset) => asset.coingecko_id!),
+        { fresh: true }
       );
     } catch {
       return fail("Impossible de récupérer les prix crypto.");

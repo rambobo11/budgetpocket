@@ -47,15 +47,23 @@ export function formatCryptoQuantity(quantity: number, symbol: string) {
 export type CryptoPrices = Record<string, number>;
 
 export async function fetchCryptoPrices(
-  ids: string[]
+  ids: string[],
+  options?: { fresh?: boolean }
 ): Promise<CryptoPrices> {
   const unique = [...new Set(ids.filter(Boolean))];
   if (unique.length === 0) return {};
 
-  const response = await fetch(
-    `/api/crypto/prices?ids=${encodeURIComponent(unique.join(","))}`,
-    { cache: "no-store" }
-  );
+  const params = new URLSearchParams({
+    ids: unique.join(","),
+  });
+  if (options?.fresh) {
+    params.set("fresh", "1");
+    params.set("_", String(Date.now()));
+  }
+
+  const response = await fetch(`/api/crypto/prices?${params.toString()}`, {
+    cache: "no-store",
+  });
 
   if (!response.ok) {
     throw new Error("Impossible de récupérer les prix crypto.");

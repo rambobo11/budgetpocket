@@ -59,10 +59,13 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const prices = await fetchCoinGeckoPricesEur(ids);
+    const fresh = searchParams.get("fresh") === "1";
+    const prices = await fetchCoinGeckoPricesEur(ids, { fresh });
     return NextResponse.json(prices, {
       headers: {
-        "Cache-Control": "private, max-age=60",
+        "Cache-Control": fresh
+          ? "private, no-store"
+          : "private, max-age=60",
       },
     });
   } catch {
