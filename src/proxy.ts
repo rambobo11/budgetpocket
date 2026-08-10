@@ -12,9 +12,9 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Tout sauf assets statiques. L’API crypto est aussi protégée
-     * (auth + allowlist) dans le route handler.
+     * Tout sauf assets statiques + manifest PWA.
+     * L’API crypto est aussi protégée (auth + allowlist) dans le route handler.
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

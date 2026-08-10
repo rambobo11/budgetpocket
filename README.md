@@ -47,9 +47,34 @@ Authentication → Users → **Add user** (email / mot de passe). Désactive les
 
 Ne mets **pas** `ALLOW_HISTORICAL_IMPORT` en production.
 
+## Installer sur iPhone (Home Screen)
+
+Après un deploy Vercel :
+
+1. Ouvre l’URL de l’app dans **Safari** (pas Chrome)
+2. Tap **Share** (carré + flèche)
+3. **Add to Home Screen**
+4. Nom : PocketBudget → **Add**
+
+L’icône **PB** s’affiche ; l’app s’ouvre en mode standalone (sans barre d’adresse).
+
+### Raccourcis iOS (optionnel)
+
+App **Shortcuts** → **+** → action **Open URLs** → colle par ex. :
+
+- `https://TON-URL/` — Dépenses
+- `https://TON-URL/a-venir` — À venir
+- `https://TON-URL/dashboard` — Stats
+- `https://TON-URL/patrimoine` — Patrimoine
+
+Puis Share → **Add to Home Screen**.
+
+> Pas de vraie widget live possible en PWA seule : une tuile Shortcuts peut seulement **ouvrir** l’app.
+
 ## Stack
 
 - Next.js (App Router) + TypeScript
 - Tailwind CSS + Shadcn UI + Lucide
 - Supabase Auth + Postgres (RLS)
 - CoinGecko (prix crypto, proxy authentifié)
+- PWA légère (manifest + icônes, pas de service worker offline)
