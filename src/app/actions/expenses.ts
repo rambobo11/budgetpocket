@@ -12,7 +12,14 @@ import {
   createExpenseSchema,
   idSchema,
 } from "@/lib/validation/schemas";
+import { formatEuro } from "@/lib/format";
 import type { Expense } from "@/lib/types";
+
+export type CreateExpenseResult = {
+  expense: Expense;
+  /** Info affichée après un paiement Swile (débit prime CSE). */
+  swileNote: string | null;
+};
 
 function mapAuthError(error: unknown): ActionResult<never> {
   if (error instanceof AuthError) return fail(error.message);
@@ -21,7 +28,7 @@ function mapAuthError(error: unknown): ActionResult<never> {
 
 export async function createExpenseAction(
   input: unknown
-): Promise<ActionResult<Expense>> {
+): Promise<ActionResult<CreateExpenseResult>> {
   try {
     const parsed = createExpenseSchema.safeParse(input);
     if (!parsed.success) {
@@ -56,11 +63,22 @@ export async function createExpenseAction(
       return fail("Impossible d'ajouter la dépense. Réessayez.");
     }
 
+    let swileNote: string | null = null;
     if (shouldAdjustSwilePrime(paymentMethod)) {
-      await adjustSwilePrimeBalance(supabase, user.id, -Number(amount));
+      const adjusted = await adjustSwilePrimeBalance(
+        supabase,
+        user.id,
+        -Number(amount)
+      );
+      if (adjusted.ok) {
+        swileNote = `${adjusted.assetName} → ${formatEuro(adjusted.nextValue)} (hors salaire)`;
+      } else {
+        swileNote =
+          "Dépense Swile OK, mais prime CSE introuvable — importe « Prime Noël Swile » dans Patrimoine.";
+      }
     }
 
-    return ok(data as Expense);
+    return ok({ expense: data as Expense, swileNote });
   } catch (error) {
     return mapAuthError(error);
   }

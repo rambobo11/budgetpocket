@@ -37,6 +37,7 @@ export function QuickAddForm({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cb");
   const [date, setDate] = useState(() => defaultDateForMonth(selectedMonth));
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export function QuickAddForm({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setInfo(null);
 
     if (!category) {
       setError("Choisissez une catégorie.");
@@ -73,7 +75,10 @@ export function QuickAddForm({
       return;
     }
 
-    onExpenseAdded(result.data);
+    onExpenseAdded(result.data.expense);
+    if (result.data.swileNote) {
+      setInfo(result.data.swileNote);
+    }
     setAmount("");
     setCategory(null);
     setDescription("");
@@ -217,6 +222,12 @@ export function QuickAddForm({
         {error ? (
           <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400">
             {error}
+          </p>
+        ) : null}
+
+        {info ? (
+          <p className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+            {info}
           </p>
         ) : null}
 
