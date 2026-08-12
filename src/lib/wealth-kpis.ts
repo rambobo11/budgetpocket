@@ -65,10 +65,9 @@ export function computeWealthKpis(input: {
   const periodExpenses = input.expenses.filter((e) =>
     keys.has(expenseMonthKey(e.created_at))
   );
-  const expensesTotal = periodExpenses.reduce(
-    (sum, e) => sum + Number(e.amount),
-    0
-  );
+  const expensesTotal = periodExpenses
+    .filter((e) => (e.payment_method ?? "cb") !== "swile")
+    .reduce((sum, e) => sum + Number(e.amount), 0);
   const avgMonthlyExpenses =
     sampleMonths > 0 ? expensesTotal / sampleMonths : 0;
   const runwayMonths =

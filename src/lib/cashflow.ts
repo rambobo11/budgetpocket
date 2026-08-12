@@ -32,7 +32,9 @@ export type CashflowModel = {
 
 const BUDGET_ID = "budget";
 
-/** Construit un modèle Sankey : sources → Budget → catégories (+ épargne / déficit). */
+/** Construit un modèle Sankey : sources → Budget → catégories CB (+ épargne / déficit).
+ * Les dépenses Swile sont exclues : elles viennent de la prime CSE, pas du salaire.
+ */
 export function buildCashflowModel(
   incomes: Income[],
   expenses: Expense[]
@@ -45,6 +47,7 @@ export function buildCashflowModel(
 
   const categoryMap = new Map<string, number>();
   for (const expense of expenses) {
+    if ((expense.payment_method ?? "cb") === "swile") continue;
     const key = expense.category || "Autres";
     categoryMap.set(key, (categoryMap.get(key) ?? 0) + Number(expense.amount));
   }

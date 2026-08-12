@@ -34,6 +34,7 @@ import {
   formatSignedPercent,
   lastNMonths,
 } from "@/lib/patrimoine-analytics";
+import { sumSalaryExpenses } from "@/lib/swile-prime";
 import { computeWealthKpis } from "@/lib/wealth-kpis";
 import { usePrivacy } from "@/components/privacy-provider";
 import { PrivacyToggle } from "@/components/privacy-toggle";
@@ -83,9 +84,7 @@ export function PatrimoineDashboard({
       setCurrentIncomes(current);
       setPreviousIncomes(previous);
       setHistoryIncomes(history);
-      setExpensesTotal(
-        expenses.reduce((sum, item) => sum + Number(item.amount), 0)
-      );
+      setExpensesTotal(sumSalaryExpenses(expenses));
       setRunwayExpenses(runway);
     });
   }, [month]);

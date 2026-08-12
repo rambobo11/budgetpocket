@@ -3,6 +3,10 @@
 import { format } from "date-fns";
 import { calendarDateToIso, calendarDateWithNowTimeToIso, nowInAppTz } from "@/lib/date";
 import { suggestBudgetMonth } from "@/lib/incomes";
+import {
+  adjustSwilePrimeBalance,
+  shouldAdjustSwilePrime,
+} from "@/lib/swile-prime";
 import { AuthError, getAuthedClient } from "@/lib/security/auth";
 import { fail, ok, type ActionResult } from "@/lib/security/action-result";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -204,17 +208,21 @@ export async function completeUpcomingAction(
     }
 
     if (item.kind === "À payer") {
+      const method = paymentMethod ?? "cb";
       const { error: expenseError } = await supabase.from("expenses").insert({
         user_id: user.id,
         amount: item.amount,
         category,
         description: item.title,
-        payment_method: paymentMethod ?? "cb",
+        payment_method: method,
         created_at: calendarDateWithNowTimeToIso(eventDate),
       });
       if (expenseError) {
         await rollbackClaim();
         return fail("Impossible de créer la dépense. Réessaie.");
+      }
+      if (shouldAdjustSwilePrime(method)) {
+        await adjustSwilePrimeBalance(supabase, user.id, -Number(item.amount));
       }
     } else {
       const suggested = suggestBudgetMonth(source!, eventDate).slice(0, 7);

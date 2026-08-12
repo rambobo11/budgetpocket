@@ -22,6 +22,7 @@ import {
   lastNMonths,
 } from "@/lib/patrimoine-analytics";
 import type { Asset, Credit, Expense, Income } from "@/lib/types";
+import { sumSalaryExpenses } from "@/lib/swile-prime";
 
 export type SynthesisPeriod = "1" | "3" | "6";
 
@@ -440,10 +441,11 @@ export function buildSynthesisMarkdown(input: SynthesisInput): string {
   ];
 
   if (sections.expenses && sections.incomes) {
-    const expenseTotal = expenses.reduce(
-      (sum, e) => sum + Number(e.amount),
-      0
-    );
+    const expenseTotal = sumSalaryExpenses(expenses);
+    const swileTotal = expenses.reduce((sum, e) => {
+      if ((e.payment_method ?? "cb") !== "swile") return sum;
+      return sum + Number(e.amount);
+    }, 0);
     const incomeTotal = incomes.reduce(
       (sum, i) => sum + Number(i.amount),
       0
@@ -454,7 +456,10 @@ export function buildSynthesisMarkdown(input: SynthesisInput): string {
     parts.push("## Vue d’ensemble");
     parts.push("");
     parts.push(`- **Revenus** : ${euro(incomeTotal)}`);
-    parts.push(`- **Dépenses** : ${euro(expenseTotal)}`);
+    parts.push(`- **Dépenses CB (salaire)** : ${euro(expenseTotal)}`);
+    if (swileTotal > 0) {
+      parts.push(`- **Dépenses Swile (prime CSE)** : ${euro(swileTotal)}`);
+    }
     parts.push(`- **Épargne nette** : ${euro(savings)}`);
     if (rate != null) {
       parts.push(`- **Taux d’épargne** : ${rate.toFixed(1)} %`);

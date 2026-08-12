@@ -92,7 +92,7 @@ export function QuickAddForm({
           Quick Add
         </h2>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Ajoutez une dépense en quelques secondes.
+          Ajoutez une dépense. Swile = prime CSE (pas le salaire).
         </p>
       </div>
 

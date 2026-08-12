@@ -1,6 +1,10 @@
 "use server";
 
 import { calendarDateWithNowTimeToIso } from "@/lib/date";
+import {
+  adjustSwilePrimeBalance,
+  shouldAdjustSwilePrime,
+} from "@/lib/swile-prime";
 import { AuthError, getAuthedClient } from "@/lib/security/auth";
 import { fail, ok, type ActionResult } from "@/lib/security/action-result";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -52,6 +56,10 @@ export async function createExpenseAction(
       return fail("Impossible d'ajouter la dépense. Réessayez.");
     }
 
+    if (shouldAdjustSwilePrime(paymentMethod)) {
+      await adjustSwilePrimeBalance(supabase, user.id, -Number(amount));
+    }
+
     return ok(data as Expense);
   } catch (error) {
     return mapAuthError(error);
@@ -70,6 +78,19 @@ export async function deleteExpenseAction(
     const { user, supabase } = await getAuthedClient();
     const { id } = parsed.data;
 
+    const { data: existing, error: loadError } = await supabase
+      .from("expenses")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (loadError || !existing) {
+      return fail("Impossible de supprimer. Réessaie.");
+    }
+
+    const expense = existing as Expense;
+
     const { data, error } = await supabase
       .from("expenses")
       .delete()
@@ -80,6 +101,10 @@ export async function deleteExpenseAction(
 
     if (error || !data) {
       return fail("Impossible de supprimer. Réessaie.");
+    }
+
+    if (shouldAdjustSwilePrime(expense.payment_method)) {
+      await adjustSwilePrimeBalance(supabase, user.id, Number(expense.amount));
     }
 
     return ok({ id });
