@@ -1,5 +1,6 @@
 import type { Expense, Income } from "@/lib/types";
 import { formatEuro } from "@/lib/format";
+import { isSalaryExpense } from "@/lib/swile-prime";
 
 export type CashflowNodeKind =
   | "source"
@@ -47,7 +48,7 @@ export function buildCashflowModel(
 
   const categoryMap = new Map<string, number>();
   for (const expense of expenses) {
-    if ((expense.payment_method ?? "cb") === "swile") continue;
+    if (!isSalaryExpense(expense)) continue;
     const key = expense.category || "Autres";
     categoryMap.set(key, (categoryMap.get(key) ?? 0) + Number(expense.amount));
   }

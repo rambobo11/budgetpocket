@@ -4,6 +4,7 @@ import type { Asset, Credit, Expense } from "@/lib/types";
 import { expenseMonthKey } from "@/lib/kpis";
 import { budgetMonthKey } from "@/lib/incomes";
 import { lastNMonths } from "@/lib/patrimoine-analytics";
+import { isSalaryExpense } from "@/lib/swile-prime";
 
 const LIQUID_TYPES = new Set(["Cash", "Compte MA"]);
 const INVESTED_TYPES = new Set(["Crypto", "Compte Binance", "Actions"]);
@@ -66,7 +67,7 @@ export function computeWealthKpis(input: {
     keys.has(expenseMonthKey(e.created_at))
   );
   const expensesTotal = periodExpenses
-    .filter((e) => (e.payment_method ?? "cb") !== "swile")
+    .filter((e) => isSalaryExpense(e))
     .reduce((sum, e) => sum + Number(e.amount), 0);
   const avgMonthlyExpenses =
     sampleMonths > 0 ? expensesTotal / sampleMonths : 0;

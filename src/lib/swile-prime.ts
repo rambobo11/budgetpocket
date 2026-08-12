@@ -1,6 +1,7 @@
 import type { Asset, Expense, PaymentMethod } from "@/lib/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-/** Montant d’une dépense qui pèse sur le salaire (hors Swile / primes CSE). */
+/** Dépense qui pèse sur le salaire (hors Swile / primes CSE). */
 export function isSalaryExpense(
   expense: Pick<Expense, "payment_method">
 ): boolean {
@@ -14,24 +15,31 @@ export function sumSalaryExpenses(expenses: Expense[]): number {
   }, 0);
 }
 
-export function isSwilePrimeAsset(
+/** Uniquement la prime Christmas CSE — pas un autre solde « Swile ». */
+export function isChristmasSwilePrimeAsset(
   asset: Pick<Asset, "name" | "notes" | "asset_type">
-) {
+): boolean {
   const type = asset.asset_type as string;
   if (type !== "Avantages" && type !== "Primes voyage" && type !== "Annexe C") {
     return false;
   }
+  if (asset.name === "Prime Noël Swile") return true;
   const haystack = `${asset.name} ${asset.notes ?? ""}`.toLowerCase();
-  return haystack.includes("swile");
+  const hasSwile = haystack.includes("swile");
+  const hasChristmas =
+    haystack.includes("noël") ||
+    haystack.includes("noel") ||
+    haystack.includes("christmas") ||
+    haystack.includes("xmas");
+  return hasSwile && hasChristmas;
 }
 
 /**
- * Ajuste le solde « Prime Noël Swile » (ou autre actif Swile CSE).
+ * Ajuste le solde « Prime Noël Swile ».
  * delta négatif = dépense, positif = remboursement (suppression).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- client Supabase typé côté actions
 export async function adjustSwilePrimeBalance(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   deltaEur: number
 ): Promise<{ ok: true; assetName: string; nextValue: number } | { ok: false }> {
@@ -49,11 +57,13 @@ export async function adjustSwilePrimeBalance(
   const assets = data as Asset[];
   const preferred =
     assets.find((asset) => asset.name === "Prime Noël Swile") ??
-    assets.find((asset) => isSwilePrimeAsset(asset));
+    assets.find((asset) => isChristmasSwilePrimeAsset(asset));
 
   if (!preferred) return { ok: false };
 
   const current = Number(preferred.value_original ?? preferred.value_eur);
+  if (!Number.isFinite(current)) return { ok: false };
+
   const nextValue = Number(Math.max(0, current + deltaEur).toFixed(2));
   const now = new Date().toISOString();
 

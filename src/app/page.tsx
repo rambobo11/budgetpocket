@@ -6,7 +6,7 @@ import { Dashboard } from "@/components/dashboard";
 
 export default async function HomePage() {
   await requireUserOrRedirect();
-  // One-shot : creatine 25 € Swile (11/08) + débit Prime Noël (owner only)
+  // Idempotent no-op après 1er run (creatine 25 € Swile 11/08 + Prime Noël).
   await ensureSwileCreatineExpenseAction();
   const expenses = await getExpensesForMonth(currentMonthStart());
   return <Dashboard initialExpenses={expenses} />;

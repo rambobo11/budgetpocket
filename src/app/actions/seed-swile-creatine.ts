@@ -8,16 +8,16 @@ import {
   assertSeedImportAllowed,
   getAuthedClient,
 } from "@/lib/security/auth";
-import { fail, ok, type ActionResult } from "@/lib/security/action-result";
+import { ok, type ActionResult } from "@/lib/security/action-result";
 import type { Expense } from "@/lib/types";
 
+/** Tag stable pour idempotence (invisible métier si on filtre à la création). */
+export const SWILE_CREATINE_SEED_TAG = "seed:swile-creatine-2026-08-11";
+
 const SEED_AMOUNT = 25;
-const SEED_DESCRIPTION = "Creatine";
 const SEED_CATEGORY = "Santé" as const;
-const SEED_NOTE_TAG = "seed:swile-creatine-2026-08-11";
 
 function seedCreatedAtIso(): string {
-  // 11 août 2026 · 20:00 Europe/Paris
   return fromZonedTime(
     new Date(2026, 7, 11, 20, 0, 0, 0),
     APP_TIMEZONE
@@ -25,20 +25,34 @@ function seedCreatedAtIso(): string {
 }
 
 /**
- * One-shot owner seed : creatine 25 € Swile le 11/08 → débit Prime Noël.
- * Idempotent (ne recrée pas si déjà présente).
+ * One-shot owner : creatine 25 € Swile le 11/08 + débit Prime Noël.
+ * Idempotent via tag. Safe à rappeler (no-op si déjà fait).
  */
 export async function ensureSwileCreatineExpenseAction(): Promise<
-  ActionResult<{
-    created: boolean;
-    expense: Expense | null;
-    primeNote: string | null;
-  }>
+  ActionResult<{ created: boolean; expenseId: string | null }>
 > {
   try {
     const { user, supabase } = await getAuthedClient();
-    assertSeedImportAllowed(user.id);
+    try {
+      assertSeedImportAllowed(user.id);
+    } catch {
+      return ok({ created: false, expenseId: null });
+    }
 
+    const { data: existing } = await supabase
+      .from("expenses")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("payment_method", "swile")
+      .eq("amount", SEED_AMOUNT)
+      .ilike("description", `%${SWILE_CREATINE_SEED_TAG}%`)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return ok({ created: false, expenseId: existing[0]!.id as string });
+    }
+
+    // Compat : ancienne détection (avant tag-only) creatine Santé 11/08
     const dayStart = fromZonedTime(
       new Date(2026, 7, 11, 0, 0, 0, 0),
       APP_TIMEZONE
@@ -48,24 +62,20 @@ export async function ensureSwileCreatineExpenseAction(): Promise<
       APP_TIMEZONE
     ).toISOString();
 
-    const { data: existing } = await supabase
+    const { data: legacy } = await supabase
       .from("expenses")
-      .select("*")
+      .select("id")
       .eq("user_id", user.id)
       .eq("payment_method", "swile")
       .eq("amount", SEED_AMOUNT)
       .eq("category", SEED_CATEGORY)
       .gte("created_at", dayStart)
       .lte("created_at", dayEnd)
-      .ilike("description", `%${SEED_DESCRIPTION}%`)
+      .ilike("description", "%Creatine%")
       .limit(1);
 
-    if (existing && existing.length > 0) {
-      return ok({
-        created: false,
-        expense: existing[0] as Expense,
-        primeNote: null,
-      });
+    if (legacy && legacy.length > 0) {
+      return ok({ created: false, expenseId: legacy[0]!.id as string });
     }
 
     const { data, error } = await supabase
@@ -74,35 +84,24 @@ export async function ensureSwileCreatineExpenseAction(): Promise<
         user_id: user.id,
         amount: SEED_AMOUNT,
         category: SEED_CATEGORY,
-        description: `${SEED_DESCRIPTION} · ${SEED_NOTE_TAG}`,
+        description: `Creatine (${SWILE_CREATINE_SEED_TAG})`,
         payment_method: "swile",
         created_at: seedCreatedAtIso(),
       })
-      .select()
+      .select("id")
       .single();
 
     if (error || !data) {
-      return fail("Impossible de créer la dépense creatine Swile.");
+      return ok({ created: false, expenseId: null });
     }
 
-    const adjusted = await adjustSwilePrimeBalance(
-      supabase,
-      user.id,
-      -SEED_AMOUNT
-    );
-    const primeNote = adjusted.ok
-      ? `${adjusted.assetName} → ${adjusted.nextValue.toFixed(2)} €`
-      : "Dépense créée, mais Prime Noël Swile introuvable (importe tes primes).";
+    await adjustSwilePrimeBalance(supabase, user.id, -SEED_AMOUNT);
 
-    return ok({
-      created: true,
-      expense: data as Expense,
-      primeNote,
-    });
+    return ok({ created: true, expenseId: data.id as string });
   } catch (error) {
     if (error instanceof AuthError) {
-      return ok({ created: false, expense: null, primeNote: null });
+      return ok({ created: false, expenseId: null });
     }
-    return fail("Seed Swile creatine impossible.");
+    return ok({ created: false, expenseId: null });
   }
 }
