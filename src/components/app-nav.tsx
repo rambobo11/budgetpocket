@@ -12,6 +12,7 @@ import {
   Landmark,
   MoreHorizontal,
   Plus,
+  Repeat,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -34,6 +35,12 @@ const moreLinks: {
   description: string;
   icon: LucideIcon;
 }[] = [
+  {
+    href: "/subscriptions",
+    label: "Abonnements",
+    description: "Catalogue, coût mensuel / an",
+    icon: Repeat,
+  },
   {
     href: "/crypto",
     label: "Crypto",

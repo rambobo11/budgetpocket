@@ -8,6 +8,8 @@ import {
   CRYPTO_TRADE_SIDES,
   INCOME_SOURCES,
   PAYMENT_METHODS,
+  SUBSCRIPTION_INTERVALS,
+  SUBSCRIPTION_STATUSES,
   UPCOMING_KINDS,
 } from "@/lib/types";
 import { CRYPTO_COINS } from "@/lib/crypto";
@@ -226,6 +228,21 @@ export const createCryptoTradeSchema = z.object({
   notes: descriptionSchema,
 });
 
+export const createSubscriptionSchema = z.object({
+  name: z.string().trim().min(1, "Indiquez un nom.").max(120),
+  amount: amountPositive,
+  category: z.enum(CATEGORIES),
+  billingInterval: z.enum(SUBSCRIPTION_INTERVALS),
+  nextBillingDate: optionalDueDate,
+  paymentMethod: z.enum(PAYMENT_METHODS),
+  notes: descriptionSchema,
+});
+
+export const updateSubscriptionStatusSchema = z.object({
+  id: uuidSchema,
+  status: z.enum(SUBSCRIPTION_STATUSES),
+});
+
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
 export type CreateIncomeInput = z.infer<typeof createIncomeSchema>;
 export type CreateAssetInput = z.infer<typeof createAssetSchema>;
@@ -233,3 +250,7 @@ export type CreateCreditInput = z.infer<typeof createCreditSchema>;
 export type CreateUpcomingInput = z.infer<typeof createUpcomingSchema>;
 export type CompleteUpcomingInput = z.infer<typeof completeUpcomingSchema>;
 export type CreateCryptoTradeInput = z.infer<typeof createCryptoTradeSchema>;
+export type CreateSubscriptionInput = z.infer<typeof createSubscriptionSchema>;
+export type UpdateSubscriptionStatusInput = z.infer<
+  typeof updateSubscriptionStatusSchema
+>;

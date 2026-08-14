@@ -12,7 +12,7 @@ import { ok, type ActionResult } from "@/lib/security/action-result";
 import type { Expense } from "@/lib/types";
 
 /** Tag stable pour idempotence (invisible métier si on filtre à la création). */
-export const SWILE_CREATINE_SEED_TAG = "seed:swile-creatine-2026-08-11";
+const SWILE_CREATINE_SEED_TAG = "seed:swile-creatine-2026-08-11";
 
 const SEED_AMOUNT = 25;
 const SEED_CATEGORY = "Santé" as const;

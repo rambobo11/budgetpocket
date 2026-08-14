@@ -6,6 +6,7 @@ import type {
   CryptoTrade,
   Expense,
   Income,
+  Subscription,
   Upcoming,
 } from "@/lib/types";
 
@@ -92,5 +93,21 @@ export async function getCryptoTrades(): Promise<CryptoTrade[]> {
     quantity: Number((row as CryptoTrade).quantity),
     price_quote: Number((row as CryptoTrade).price_quote),
     fee_quote: Number((row as CryptoTrade).fee_quote ?? 0),
+  }));
+}
+
+export async function getSubscriptions(): Promise<Subscription[]> {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("*")
+    .order("status", { ascending: true })
+    .order("next_billing_date", { ascending: true, nullsFirst: false })
+    .order("name", { ascending: true });
+
+  return (data ?? []).map((row) => ({
+    ...(row as Subscription),
+    amount: Number((row as Subscription).amount),
   }));
 }

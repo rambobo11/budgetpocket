@@ -157,3 +157,26 @@ export type CryptoTrade = {
   created_at: string;
   updated_at: string;
 };
+
+export const SUBSCRIPTION_INTERVALS = ["monthly", "yearly"] as const;
+
+export type SubscriptionInterval = (typeof SUBSCRIPTION_INTERVALS)[number];
+
+export const SUBSCRIPTION_STATUSES = ["active", "paused", "cancelled"] as const;
+
+export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
+
+export type Subscription = {
+  id: string;
+  user_id: string;
+  name: string;
+  amount: number;
+  category: Category;
+  billing_interval: SubscriptionInterval;
+  next_billing_date: string | null;
+  payment_method: PaymentMethod;
+  status: SubscriptionStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
