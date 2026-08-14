@@ -15,6 +15,7 @@ export const CATEGORIES = [
   "Hustle",
   "Investissement",
   "Kheir Lil",
+  "Évitable",
   "Autres",
 ] as const;
 
