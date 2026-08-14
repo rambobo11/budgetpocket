@@ -3,8 +3,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function LoginPage() {
   return (
-    <main className="relative flex min-h-full flex-1 items-center justify-center px-5 py-12">
-      <div className="absolute top-5 right-5">
+    <main className="relative flex min-h-full flex-1 items-center justify-center px-5 py-12 pt-[calc(3rem+env(safe-area-inset-top))] pb-[calc(3rem+env(safe-area-inset-bottom))]">
+      <div className="absolute top-[calc(1.25rem+env(safe-area-inset-top))] right-5">
         <ThemeToggle />
       </div>
 

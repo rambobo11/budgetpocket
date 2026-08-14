@@ -31,7 +31,7 @@ export default function ImportPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-4 py-10 sm:px-6 md:max-w-xl">
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-4 py-10 pt-[calc(2.5rem+env(safe-area-inset-top))] pb-[calc(2.5rem+env(safe-area-inset-bottom))] sm:px-6 md:max-w-xl">
       <p className="text-sm font-medium tracking-[0.08em] text-zinc-400 uppercase">
         PocketBudget
       </p>
