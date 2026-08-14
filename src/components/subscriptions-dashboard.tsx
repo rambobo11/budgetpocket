@@ -42,7 +42,7 @@ export function SubscriptionsDashboard({ items }: SubscriptionsDashboardProps) {
           <PrivacyToggle prominent />
         </div>
         <p className="mt-4 border-t border-zinc-100 pt-3 text-xs leading-relaxed text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-          Totaux prévisionnels — le salaire ne bouge qu’au paiement (Quick Add).
+          Totaux prévisionnels — le salaire ne bouge qu’au paiement (Ajout rapide).
         </p>
       </div>
 

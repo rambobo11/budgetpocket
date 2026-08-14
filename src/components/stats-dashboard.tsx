@@ -324,7 +324,7 @@ export function StatsDashboard({
             <p className="px-5 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
               Aucune dépense ce mois-ci.
               <br />
-              Importe ton historique ou ajoute via Quick Add.
+              Importe ton historique ou ajoute via Ajout rapide.
             </p>
           ) : (
             <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">

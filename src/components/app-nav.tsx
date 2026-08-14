@@ -11,7 +11,7 @@ import {
   HandCoins,
   Landmark,
   MoreHorizontal,
-  Plus,
+  Receipt,
   Repeat,
   Wallet,
   type LucideIcon,
@@ -22,11 +22,9 @@ const primaryLinks: {
   label: string;
   icon: LucideIcon;
 }[] = [
-  { href: "/", label: "Dépenses", icon: Plus },
+  { href: "/", label: "Dépenses", icon: Receipt },
   { href: "/incomes", label: "Revenus", icon: Wallet },
   { href: "/patrimoine", label: "Patrimoine", icon: Landmark },
-  { href: "/credits", label: "Crédit", icon: HandCoins },
-  { href: "/a-venir", label: "À venir", icon: CalendarClock },
 ];
 
 const moreLinks: {
@@ -36,6 +34,18 @@ const moreLinks: {
   icon: LucideIcon;
 }[] = [
   {
+    href: "/credits",
+    label: "Crédit",
+    description: "Prêts, créances, soldes",
+    icon: HandCoins,
+  },
+  {
+    href: "/a-venir",
+    label: "À venir",
+    description: "Échéances et remboursements",
+    icon: CalendarClock,
+  },
+  {
     href: "/subscriptions",
     label: "Abonnements",
     description: "Catalogue, coût mensuel / an",
@@ -44,12 +54,12 @@ const moreLinks: {
   {
     href: "/crypto",
     label: "Crypto",
-    description: "Trades, buy/sell, PnL",
+    description: "Trades, achats / ventes, PnL",
     icon: Bitcoin,
   },
   {
     href: "/dashboard",
-    label: "Stats",
+    label: "Statistiques",
     description: "KPIs, cashflow, catégories",
     icon: BarChart3,
   },
@@ -110,7 +120,8 @@ export function AppNav() {
               key={href}
               href={href}
               aria-label={label}
-              className={`flex min-w-0 flex-1 items-center justify-center gap-1 rounded-full px-1.5 py-2 text-[11px] font-semibold tracking-tight transition-all sm:gap-1.5 sm:px-3 sm:text-xs md:py-2.5 md:text-sm ${
+              aria-current={active ? "page" : undefined}
+              className={`flex min-w-0 flex-1 items-center justify-center gap-1 rounded-full px-1.5 py-2.5 text-[11px] font-semibold tracking-tight transition-all sm:gap-1.5 sm:px-3 sm:text-xs md:text-sm ${
                 active
                   ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-100"
                   : "text-zinc-500 dark:text-zinc-400"
@@ -129,7 +140,7 @@ export function AppNav() {
             aria-expanded={moreOpen}
             aria-haspopup="menu"
             onClick={() => setMoreOpen((value) => !value)}
-            className={`flex min-w-0 flex-1 items-center justify-center gap-1 rounded-full px-1.5 py-2 text-[11px] font-semibold tracking-tight transition-all sm:gap-1.5 sm:px-3 sm:text-xs md:py-2.5 md:text-sm ${
+            className={`flex min-w-0 flex-1 items-center justify-center gap-1 rounded-full px-1.5 py-2.5 text-[11px] font-semibold tracking-tight transition-all sm:gap-1.5 sm:px-3 sm:text-xs md:text-sm ${
               moreActive || moreOpen
                 ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-100"
                 : "text-zinc-500 dark:text-zinc-400"

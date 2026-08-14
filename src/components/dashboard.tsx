@@ -13,9 +13,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Expense } from "@/lib/types";
 import { currentMonthStart, nowInAppTz } from "@/lib/date";
 import { fetchExpensesForMonth } from "@/lib/expenses";
+import { formatEuro } from "@/lib/format";
 import { LogoutButton } from "@/components/logout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PrivacyToggle } from "@/components/privacy-toggle";
+import { usePrivacy } from "@/components/privacy-provider";
 import { QuickAddForm } from "@/components/quick-add-form";
 import { ExpenseList } from "@/components/expense-list";
 import { AppNav } from "@/components/app-nav";
@@ -30,6 +32,7 @@ export function Dashboard({ initialExpenses }: DashboardProps) {
   const [selectedMonth, setSelectedMonth] = useState(() => currentMonthStart());
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   const [isPending, startTransition] = useTransition();
+  const { mask } = usePrivacy();
 
   useEffect(() => {
     const now = currentMonthStart();
@@ -46,6 +49,10 @@ export function Dashboard({ initialExpenses }: DashboardProps) {
 
   const monthLabel = format(selectedMonth, "MMMM yyyy", { locale: fr });
   const canGoNext = !isSameMonth(selectedMonth, nowInAppTz());
+  const monthTotal = expenses.reduce(
+    (sum, expense) => sum + Number(expense.amount),
+    0
+  );
 
   function handleExpenseAdded(expense: Expense) {
     setExpenses((previous) =>
@@ -100,6 +107,11 @@ export function Dashboard({ initialExpenses }: DashboardProps) {
               <ChevronRight className="size-5" />
             </Button>
           </div>
+          <p className="mt-1.5 pl-8 text-sm text-zinc-500 tabular-nums sm:pl-9 dark:text-zinc-400">
+            {mask(formatEuro(monthTotal))}
+            <span className="text-zinc-300 dark:text-zinc-600"> · </span>
+            {expenses.length} dépense{expenses.length > 1 ? "s" : ""}
+          </p>
         </div>
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
           <ThemeToggle />
