@@ -8,7 +8,6 @@ import {
   HandCoins,
   Loader2,
   Pencil,
-  Trash2,
   X,
 } from "lucide-react";
 import {
@@ -19,6 +18,7 @@ import {
 import { formatEuro, formatMad } from "@/lib/format";
 import type { Credit } from "@/lib/types";
 import { usePrivacy } from "@/components/privacy-provider";
+import { DeleteConfirmButton } from "@/components/delete-confirm-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -58,11 +58,6 @@ export function CreditList({
   const hiddenCount = ordered.length - initialVisible;
 
   async function handleDelete(credit: Credit) {
-    const confirmed = window.confirm(
-      `Supprimer ?\n${credit.person} — ${formatCreditAmount(credit)}`
-    );
-    if (!confirmed) return;
-
     setDeletingId(credit.id);
     const result = await deleteCreditAction({ id: credit.id });
     setDeletingId(null);
@@ -296,21 +291,11 @@ export function CreditList({
                     </Button>
                   )}
 
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => void handleDelete(credit)}
-                    disabled={deletingId === credit.id}
-                    className="size-9 rounded-full text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                    aria-label="Supprimer"
-                  >
-                    {deletingId === credit.id ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="size-4" />
-                    )}
-                  </Button>
+                  <DeleteConfirmButton
+                    ariaLabel="Supprimer"
+                    busy={deletingId === credit.id}
+                    onConfirm={() => handleDelete(credit)}
+                  />
                 </div>
               </div>
             </li>

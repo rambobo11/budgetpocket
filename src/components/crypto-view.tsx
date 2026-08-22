@@ -6,7 +6,6 @@ import { fr } from "date-fns/locale";
 import {
   Loader2,
   RefreshCw,
-  Trash2,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
@@ -160,13 +159,6 @@ export function CryptoView({ initialTrades, initialAssets }: CryptoViewProps) {
   }
 
   async function handleDelete(trade: CryptoTrade) {
-    const coin = getCryptoCoin(trade.coingecko_id);
-    const label = coin ? `${coin.symbol}` : trade.coingecko_id;
-    const confirmed = window.confirm(
-      `Supprimer ce trade ?\n${trade.side === "buy" ? "Achat" : "Vente"} ${label}`
-    );
-    if (!confirmed) return;
-
     setBusyId(trade.id);
     const result = await deleteCryptoTradeAction({ id: trade.id });
     setBusyId(null);
@@ -512,21 +504,11 @@ export function CryptoView({ initialTrades, initialAssets }: CryptoViewProps) {
                             )
                           )}
                         </p>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          disabled={busyId === trade.id}
-                          onClick={() => void handleDelete(trade)}
-                          className="size-8 rounded-full text-zinc-500 hover:text-rose-600"
-                          aria-label="Supprimer"
-                        >
-                          {busyId === trade.id ? (
-                            <Loader2 className="size-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="size-4" />
-                          )}
-                        </Button>
+                        <DeleteConfirmButton
+                          ariaLabel="Supprimer"
+                          busy={busyId === trade.id}
+                          onConfirm={() => handleDelete(trade)}
+                        />
                       </div>
                     </div>
                   </li>

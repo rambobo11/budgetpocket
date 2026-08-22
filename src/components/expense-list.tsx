@@ -3,13 +3,13 @@
 import { useMemo, useState } from "react";
 import { formatInTimeZone } from "date-fns-tz";
 import { fr } from "date-fns/locale";
-import { Loader2, Receipt, Trash2 } from "lucide-react";
+import { Receipt } from "lucide-react";
 import { deleteExpenseAction } from "@/app/actions/expenses";
 import { APP_TIMEZONE } from "@/lib/date";
 import { formatEuro } from "@/lib/format";
 import type { Expense } from "@/lib/types";
 import { usePrivacy } from "@/components/privacy-provider";
-import { Button } from "@/components/ui/button";
+import { DeleteConfirmButton } from "@/components/delete-confirm-button";
 
 type ExpenseListProps = {
   expenses: Expense[];
@@ -32,6 +32,7 @@ export function ExpenseList({
   initialVisible = 5,
 }: ExpenseListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const { mask } = usePrivacy();
 
@@ -48,22 +49,13 @@ export function ExpenseList({
   const hiddenCount = sortedExpenses.length - initialVisible;
 
   async function handleDelete(expense: Expense) {
-    const label = expense.description
-      ? `${expense.category} · ${expense.description}`
-      : expense.category;
-
-    const confirmed = window.confirm(
-      `Supprimer cette dépense ?\n${label} — ${formatEuro(Number(expense.amount))}`
-    );
-
-    if (!confirmed) return;
-
+    setError(null);
     setDeletingId(expense.id);
     const result = await deleteExpenseAction({ id: expense.id });
     setDeletingId(null);
 
     if (!result.ok) {
-      window.alert(result.error);
+      setError(result.error);
       return;
     }
 
@@ -95,6 +87,9 @@ export function ExpenseList({
         <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
           {sortedExpenses.length} dépense{sortedExpenses.length > 1 ? "s" : ""}
         </p>
+        {error ? (
+          <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+        ) : null}
       </div>
 
       <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -133,21 +128,11 @@ export function ExpenseList({
               <p className="text-[15px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
                 {mask(formatEuro(Number(expense.amount)))}
               </p>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDelete(expense)}
-                disabled={deletingId === expense.id}
-                className="size-9 rounded-full text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                aria-label="Supprimer la dépense"
-              >
-                {deletingId === expense.id ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Trash2 className="size-4" />
-                )}
-              </Button>
+              <DeleteConfirmButton
+                ariaLabel="Supprimer la dépense"
+                busy={deletingId === expense.id}
+                onConfirm={() => handleDelete(expense)}
+              />
             </div>
           </li>
         ))}

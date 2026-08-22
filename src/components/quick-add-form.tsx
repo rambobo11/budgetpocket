@@ -5,6 +5,10 @@ import { Loader2, Plus } from "lucide-react";
 import { createExpenseAction } from "@/app/actions/expenses";
 import { defaultDateForMonth, monthBounds } from "@/lib/expenses";
 import {
+  buildRecentCategories,
+  rememberCategory,
+} from "@/lib/recent-categories";
+import {
   CATEGORIES,
   PAYMENT_METHODS,
   PAYMENT_METHOD_LABELS,
@@ -25,11 +29,13 @@ import {
 
 type QuickAddFormProps = {
   selectedMonth: Date;
+  expenses?: Expense[];
   onExpenseAdded: (expense: Expense) => void;
 };
 
 export function QuickAddForm({
   selectedMonth,
+  expenses = [],
   onExpenseAdded,
 }: QuickAddFormProps) {
   const bounds = monthBounds(selectedMonth);
@@ -41,10 +47,17 @@ export function QuickAddForm({
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [recentCategories, setRecentCategories] = useState<Category[]>(() =>
+    buildRecentCategories(expenses)
+  );
 
   useEffect(() => {
     setDate(defaultDateForMonth(selectedMonth));
   }, [selectedMonth]);
+
+  useEffect(() => {
+    setRecentCategories(buildRecentCategories(expenses));
+  }, [expenses]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -77,6 +90,7 @@ export function QuickAddForm({
       return;
     }
 
+    setRecentCategories(rememberCategory(category));
     onExpenseAdded(result.data.expense);
     if (result.data.swileNote) {
       setInfo(result.data.swileNote);
@@ -155,6 +169,27 @@ export function QuickAddForm({
           <Label className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
             Catégorie
           </Label>
+          {recentCategories.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {recentCategories.map((item) => {
+                const active = category === item;
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setCategory(item)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                      active
+                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
           <Select
             value={category}
             onValueChange={(value) => {

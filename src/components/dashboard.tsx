@@ -128,6 +128,7 @@ export function Dashboard({ initialExpenses }: DashboardProps) {
         <div className="md:sticky md:top-8">
           <QuickAddForm
             selectedMonth={selectedMonth}
+            expenses={expenses}
             onExpenseAdded={handleExpenseAdded}
           />
         </div>

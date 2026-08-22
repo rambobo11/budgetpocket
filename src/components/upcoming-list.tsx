@@ -8,7 +8,6 @@ import {
   Check,
   Loader2,
   RotateCcw,
-  Trash2,
   X,
 } from "lucide-react";
 import {
@@ -31,6 +30,7 @@ import {
   type Upcoming,
 } from "@/lib/types";
 import { usePrivacy } from "@/components/privacy-provider";
+import { DeleteConfirmButton } from "@/components/delete-confirm-button";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -134,11 +134,6 @@ export function UpcomingList({
   }
 
   async function handleDelete(item: Upcoming) {
-    const confirmed = window.confirm(
-      `Supprimer ?\n${item.title} — ${mask(formatEuro(Number(item.amount)))}`
-    );
-    if (!confirmed) return;
-
     if (inFlight.current) return;
     inFlight.current = true;
     setBusyId(item.id);
@@ -289,17 +284,11 @@ export function UpcomingList({
                         )}
                       </Button>
                     )}
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      disabled={busyId === item.id}
-                      onClick={() => void handleDelete(item)}
-                      className="size-8 rounded-full text-zinc-500 hover:text-rose-600"
-                      aria-label="Supprimer"
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
+                    <DeleteConfirmButton
+                      ariaLabel="Supprimer"
+                      busy={busyId === item.id}
+                      onConfirm={() => handleDelete(item)}
+                    />
                   </div>
                 </div>
               </div>

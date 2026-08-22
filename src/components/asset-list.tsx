@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Check, Loader2, Pencil, Trash2, Landmark, X } from "lucide-react";
+import { Check, Loader2, Pencil, Landmark, X } from "lucide-react";
 import {
   deleteAssetAction,
   updateAssetValueAction,
@@ -18,6 +18,7 @@ import {
 } from "@/lib/crypto";
 import type { Asset } from "@/lib/types";
 import { usePrivacy } from "@/components/privacy-provider";
+import { DeleteConfirmButton } from "@/components/delete-confirm-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -60,11 +61,6 @@ export function AssetList({
   const hiddenCount = assets.length - initialVisible;
 
   async function handleDelete(asset: Asset) {
-    const confirmed = window.confirm(
-      `Supprimer cet actif ?\n${asset.name} — ${formatAssetValue(asset)}`
-    );
-    if (!confirmed) return;
-
     setDeletingId(asset.id);
     const result = await deleteAssetAction({ id: asset.id });
     setDeletingId(null);
@@ -240,21 +236,11 @@ export function AssetList({
                       <Pencil className="size-3.5 text-zinc-400" />
                     </button>
                   ) : null}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(asset)}
-                    disabled={deletingId === asset.id}
-                    className="size-9 rounded-full text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                    aria-label="Supprimer l'actif"
-                  >
-                    {deletingId === asset.id ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="size-4" />
-                    )}
-                  </Button>
+                  <DeleteConfirmButton
+                    ariaLabel="Supprimer l'actif"
+                    busy={deletingId === asset.id}
+                    onConfirm={() => handleDelete(asset)}
+                  />
                 </div>
               </div>
             </li>

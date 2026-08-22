@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { format, isValid, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Check, Loader2, Pencil, Trash2, Wallet, X } from "lucide-react";
+import { Check, Loader2, Pencil, Wallet, X } from "lucide-react";
 import {
   deleteIncomeAction,
   updateIncomeBudgetMonthAction,
@@ -16,6 +16,7 @@ import {
 import { formatEuro } from "@/lib/format";
 import type { Income } from "@/lib/types";
 import { usePrivacy } from "@/components/privacy-provider";
+import { DeleteConfirmButton } from "@/components/delete-confirm-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -40,25 +41,17 @@ export function IncomeList({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editMonth, setEditMonth] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { mask } = usePrivacy();
 
   async function handleDelete(income: Income) {
-    const label = income.description
-      ? `${income.source} · ${income.description}`
-      : income.source;
-
-    const confirmed = window.confirm(
-      `Supprimer ce revenu ?\n${label} — ${formatEuro(Number(income.amount))}`
-    );
-
-    if (!confirmed) return;
-
+    setError(null);
     setDeletingId(income.id);
     const result = await deleteIncomeAction({ id: income.id });
     setDeletingId(null);
 
     if (!result.ok) {
-      window.alert(result.error);
+      setError(result.error);
       return;
     }
 
@@ -130,6 +123,9 @@ export function IncomeList({
           {incomes.length} entrée{incomes.length > 1 ? "s" : ""} ·{" "}
           {mask(formatEuro(total))}
         </p>
+        {error ? (
+          <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+        ) : null}
       </div>
 
       <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -201,21 +197,11 @@ export function IncomeList({
                   <p className="text-[15px] font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
                     +{mask(formatEuro(Number(income.amount)))}
                   </p>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(income)}
-                    disabled={deletingId === income.id}
-                    className="size-9 rounded-full text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                    aria-label="Supprimer le revenu"
-                  >
-                    {deletingId === income.id ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="size-4" />
-                    )}
-                  </Button>
+                  <DeleteConfirmButton
+                    ariaLabel="Supprimer le revenu"
+                    busy={deletingId === income.id}
+                    onConfirm={() => handleDelete(income)}
+                  />
                 </div>
               </div>
             </li>

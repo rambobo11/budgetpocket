@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, Pause, Play, Repeat, Trash2 } from "lucide-react";
+import { Loader2, Pause, Play, Repeat } from "lucide-react";
 import {
   deleteSubscriptionAction,
   updateSubscriptionStatusAction,
@@ -17,6 +17,7 @@ import {
 } from "@/lib/subscriptions";
 import type { Subscription } from "@/lib/types";
 import { usePrivacy } from "@/components/privacy-provider";
+import { DeleteConfirmButton } from "@/components/delete-confirm-button";
 import { Button } from "@/components/ui/button";
 
 type SubscriptionListProps = {
@@ -42,6 +43,7 @@ export function SubscriptionList({
 }: SubscriptionListProps) {
   const { mask } = usePrivacy();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const today = format(nowInAppTz(), "yyyy-MM-dd");
   const groups = groupSubscriptionsByCategory(
     items.filter((item) => item.status !== "cancelled")
@@ -51,6 +53,7 @@ export function SubscriptionList({
     item: Subscription,
     status: "active" | "paused"
   ) {
+    setError(null);
     setBusyId(item.id);
     const result = await updateSubscriptionStatusAction({
       id: item.id,
@@ -58,23 +61,19 @@ export function SubscriptionList({
     });
     setBusyId(null);
     if (!result.ok) {
-      window.alert(result.error);
+      setError(result.error);
       return;
     }
     onSubscriptionUpdated(result.data);
   }
 
   async function handleDelete(item: Subscription) {
-    const confirmed = window.confirm(
-      `Supprimer l'abonnement ?\n${item.name} — ${formatEuro(Number(item.amount))}`
-    );
-    if (!confirmed) return;
-
+    setError(null);
     setBusyId(item.id);
     const result = await deleteSubscriptionAction({ id: item.id });
     setBusyId(null);
     if (!result.ok) {
-      window.alert(result.error);
+      setError(result.error);
       return;
     }
     onSubscriptionDeleted(item.id);
@@ -105,6 +104,9 @@ export function SubscriptionList({
         <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
           Par catégorie · date de prélèvement
         </p>
+        {error ? (
+          <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+        ) : null}
       </div>
 
       <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -198,17 +200,11 @@ export function SubscriptionList({
                           <Pause className="size-4" />
                         )}
                       </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        disabled={busy}
-                        onClick={() => void handleDelete(item)}
-                        className="size-9 rounded-full text-zinc-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                        aria-label="Supprimer l'abonnement"
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
+                      <DeleteConfirmButton
+                        ariaLabel="Supprimer l'abonnement"
+                        busy={busy}
+                        onConfirm={() => handleDelete(item)}
+                      />
                     </div>
                   </li>
                 );
