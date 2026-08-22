@@ -24,7 +24,7 @@ const primaryLinks: {
 }[] = [
   { href: "/", label: "Dépenses", icon: Receipt },
   { href: "/incomes", label: "Revenus", icon: Wallet },
-  { href: "/patrimoine", label: "Patrimoine", icon: Landmark },
+  { href: "/dashboard", label: "Stats", icon: BarChart3 },
 ];
 
 const moreLinks: {
@@ -33,6 +33,12 @@ const moreLinks: {
   description: string;
   icon: LucideIcon;
 }[] = [
+  {
+    href: "/patrimoine",
+    label: "Patrimoine",
+    description: "Actifs, primes CSE, totaux",
+    icon: Landmark,
+  },
   {
     href: "/credits",
     label: "Crédit",
@@ -56,12 +62,6 @@ const moreLinks: {
     label: "Crypto",
     description: "Trades, achats / ventes, PnL",
     icon: Bitcoin,
-  },
-  {
-    href: "/dashboard",
-    label: "Statistiques",
-    description: "KPIs, cashflow, catégories",
-    icon: BarChart3,
   },
   {
     href: "/synthese",
