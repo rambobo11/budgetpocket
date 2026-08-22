@@ -16,6 +16,7 @@ import {
 import { refreshCryptoPricesAction } from "@/app/actions/assets";
 import { CryptoTradeForm } from "@/components/crypto-trade-form";
 import { AppNav } from "@/components/app-nav";
+import { DeleteConfirmButton } from "@/components/delete-confirm-button";
 import { LogoutButton } from "@/components/logout-button";
 import { PageShell } from "@/components/page-shell";
 import { PrivacyToggle } from "@/components/privacy-toggle";
