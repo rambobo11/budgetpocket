@@ -12,7 +12,7 @@ create table if not exists public.subscriptions (
     check (billing_interval in ('monthly', 'yearly')),
   next_billing_date date,
   payment_method text not null default 'cb'
-    check (payment_method in ('cb', 'swile')),
+    check (payment_method in ('cb', 'swile', 'cash')),
   status text not null default 'active'
     check (status in ('active', 'paused', 'cancelled')),
   notes text,

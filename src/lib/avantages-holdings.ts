@@ -13,7 +13,7 @@ export const AVANTAGES_HOLDINGS = [
   {
     name: "Prime Noël Swile",
     asset_type: "Avantages" as const,
-    value: 50.71,
+    value: 25.71,
     notes: "Swile · prime Christmas",
   },
   {

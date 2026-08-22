@@ -12,6 +12,7 @@ import { fr } from "date-fns/locale";
 import {
   ChevronLeft,
   ChevronRight,
+  Banknote,
   CreditCard,
   TrendingDown,
   TrendingUp,
@@ -230,7 +231,25 @@ export function StatsDashboard({
             </p>
           </section>
 
-          <section className="col-span-2 rounded-[1.5rem] border border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900 md:col-span-2">
+          <section className="rounded-[1.5rem] border border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="mb-3 flex size-8 items-center justify-center rounded-full bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+              <Banknote className="size-4" />
+            </div>
+            <p className="text-[12px] font-medium tracking-wide text-zinc-500 uppercase">
+              Cash
+            </p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+              {mask(formatEuro(kpis.cashTotal))}
+            </p>
+            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+              {insights.cashSharePercent != null
+                ? `${insights.cashSharePercent.toFixed(0)}% · `
+                : ""}
+              {kpis.cashCount} dépense{kpis.cashCount > 1 ? "s" : ""}
+            </p>
+          </section>
+
+          <section className="rounded-[1.5rem] border border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
             <p className="text-[12px] font-medium tracking-wide text-zinc-500 uppercase">
               Top catégorie
             </p>

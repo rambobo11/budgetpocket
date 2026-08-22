@@ -121,7 +121,7 @@ function buildExpensesSection(
       );
     }
     lines.push(
-      `- **CB** : ${euro(kpis.cbTotal)} (${insights.cbSharePercent?.toFixed(0) ?? 0} %) · **Swile** : ${euro(kpis.swileTotal)} (${insights.swileSharePercent?.toFixed(0) ?? 0} %)`
+      `- **CB** : ${euro(kpis.cbTotal)} (${insights.cbSharePercent?.toFixed(0) ?? 0} %) · **Swile** : ${euro(kpis.swileTotal)} (${insights.swileSharePercent?.toFixed(0) ?? 0} %) · **Cash** : ${euro(kpis.cashTotal)} (${insights.cashSharePercent?.toFixed(0) ?? 0} %)`
     );
   } else {
     const history = computeExpenseHistory(endMonth, expenses, months);

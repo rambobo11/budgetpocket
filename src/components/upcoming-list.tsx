@@ -23,6 +23,8 @@ import { sortUpcoming } from "@/lib/upcoming-kpis";
 import {
   CATEGORIES,
   INCOME_SOURCES,
+  PAYMENT_METHODS,
+  PAYMENT_METHOD_LABELS,
   type Category,
   type IncomeSource,
   type PaymentMethod,
@@ -367,8 +369,8 @@ export function UpcomingList({
                             <Label className="text-xs text-zinc-500 dark:text-zinc-400">
                               Paiement
                             </Label>
-                            <div className="grid grid-cols-2 gap-2">
-                              {(["cb", "swile"] as const).map((method) => (
+                            <div className="grid grid-cols-3 gap-2">
+                              {PAYMENT_METHODS.map((method) => (
                                 <button
                                   key={method}
                                   type="button"
@@ -379,7 +381,7 @@ export function UpcomingList({
                                       : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400"
                                   }`}
                                 >
-                                  {method === "cb" ? "CB" : "Swile"}
+                                  {PAYMENT_METHOD_LABELS[method]}
                                 </button>
                               ))}
                             </div>

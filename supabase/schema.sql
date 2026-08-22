@@ -14,7 +14,7 @@ create table if not exists public.expenses (
   amount numeric(12, 2) not null check (amount > 0),
   category text not null,
   description text,
-  payment_method text not null default 'cb' check (payment_method in ('cb', 'swile')),
+  payment_method text not null default 'cb' check (payment_method in ('cb', 'swile', 'cash')),
   created_at timestamptz not null default now()
 );
 
@@ -282,7 +282,7 @@ create table if not exists public.subscriptions (
     check (billing_interval in ('monthly', 'yearly')),
   next_billing_date date,
   payment_method text not null default 'cb'
-    check (payment_method in ('cb', 'swile')),
+    check (payment_method in ('cb', 'swile', 'cash')),
   status text not null default 'active'
     check (status in ('active', 'paused', 'cancelled')),
   notes text,

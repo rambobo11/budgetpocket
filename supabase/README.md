@@ -7,6 +7,7 @@
 | `upcoming.sql` | Table À venir (échéances / remboursements) |
 | `crypto-trades.sql` | Journal trades crypto (achats / ventes) |
 | `subscriptions.sql` | Abonnements récurrents (catalogue + totaux) |
+| `add-cash-payment-method.sql` | Ajoute `cash` aux moyens de paiement |
 | `add-*.sql` / `incomes.sql` / `assets.sql` | Migrations incrémentales si la base existait déjà |
 
 Ne ré-exécute pas les scripts `add-*` si `schema.sql` consolidé a déjà été appliqué.

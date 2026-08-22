@@ -344,7 +344,7 @@ export function PatrimoineView({
           <div className="rounded-2xl border border-dashed border-zinc-300 px-4 py-3 dark:border-zinc-700">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-zinc-600 dark:text-zinc-300">
-                ANCV 400 € · Swile 50,71 € · HelloCSE 150 €
+                ANCV 400 € · Swile 25,71 € · HelloCSE 150 €
               </p>
               <Button
                 type="button"

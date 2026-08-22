@@ -112,6 +112,10 @@ export function ExpenseList({
                   <span className="shrink-0 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-700 uppercase dark:bg-emerald-950 dark:text-emerald-400">
                     Swile
                   </span>
+                ) : expense.payment_method === "cash" ? (
+                  <span className="shrink-0 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-amber-800 uppercase dark:bg-amber-950 dark:text-amber-300">
+                    Cash
+                  </span>
                 ) : null}
               </div>
               <p className="mt-0.5 truncate text-sm text-zinc-500 dark:text-zinc-400">

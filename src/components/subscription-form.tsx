@@ -5,6 +5,8 @@ import { Loader2, Plus } from "lucide-react";
 import { createSubscriptionAction } from "@/app/actions/subscriptions";
 import {
   CATEGORIES,
+  PAYMENT_METHODS,
+  PAYMENT_METHOD_LABELS,
   SUBSCRIPTION_INTERVALS,
   type Category,
   type PaymentMethod,
@@ -209,8 +211,8 @@ export function SubscriptionForm({
             <Label className="text-[12px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
               Paiement
             </Label>
-            <div className="grid grid-cols-2 gap-1.5">
-              {(["cb", "swile"] as const).map((method) => (
+            <div className="grid grid-cols-3 gap-1.5">
+              {PAYMENT_METHODS.map((method) => (
                 <button
                   key={method}
                   type="button"
@@ -221,7 +223,7 @@ export function SubscriptionForm({
                       : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400"
                   }`}
                 >
-                  {method === "cb" ? "CB" : "Swile"}
+                  {PAYMENT_METHOD_LABELS[method]}
                 </button>
               ))}
             </div>

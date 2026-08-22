@@ -3,10 +3,6 @@
 import { format } from "date-fns";
 import { calendarDateToIso, calendarDateWithNowTimeToIso, nowInAppTz } from "@/lib/date";
 import { suggestBudgetMonth } from "@/lib/incomes";
-import {
-  adjustSwilePrimeBalance,
-  shouldAdjustSwilePrime,
-} from "@/lib/swile-prime";
 import { AuthError, getAuthedClient } from "@/lib/security/auth";
 import { fail, ok, type ActionResult } from "@/lib/security/action-result";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -220,9 +216,6 @@ export async function completeUpcomingAction(
       if (expenseError) {
         await rollbackClaim();
         return fail("Impossible de créer la dépense. Réessaie.");
-      }
-      if (shouldAdjustSwilePrime(method)) {
-        await adjustSwilePrimeBalance(supabase, user.id, -Number(item.amount));
       }
     } else {
       const suggested = suggestBudgetMonth(source!, eventDate).slice(0, 7);

@@ -84,7 +84,12 @@ export async function adjustSwilePrimeBalance(
 }
 
 export function shouldAdjustSwilePrime(
-  paymentMethod: PaymentMethod | string | null | undefined
+  _paymentMethod: PaymentMethod | string | null | undefined
 ): boolean {
-  return paymentMethod === "swile";
+  // Swile tickets resto ≠ Prime Noël Christmas : ne plus débiter l’actif.
+  // La Prime Noël se met à jour manuellement dans Patrimoine.
+  return false;
 }
+
+/** Solde réel restant après creatine 25 € (50,71 → 25,71). */
+export const CHRISTMAS_SWILE_PRIME_REPAIR_EUR = 25.71;

@@ -1,10 +1,6 @@
 "use server";
 
 import { calendarDateWithNowTimeToIso } from "@/lib/date";
-import {
-  adjustSwilePrimeBalance,
-  shouldAdjustSwilePrime,
-} from "@/lib/swile-prime";
 import { AuthError, getAuthedClient } from "@/lib/security/auth";
 import { fail, ok, type ActionResult } from "@/lib/security/action-result";
 import { rateLimit } from "@/lib/security/rate-limit";
@@ -12,12 +8,11 @@ import {
   createExpenseSchema,
   idSchema,
 } from "@/lib/validation/schemas";
-import { formatEuro } from "@/lib/format";
 import type { Expense } from "@/lib/types";
 
 export type CreateExpenseResult = {
   expense: Expense;
-  /** Info affichée après un paiement Swile (débit prime CSE). */
+  /** Info optionnelle après ajout (ex. Swile hors salaire). */
   swileNote: string | null;
 };
 
@@ -63,20 +58,10 @@ export async function createExpenseAction(
       return fail("Impossible d'ajouter la dépense. Réessayez.");
     }
 
-    let swileNote: string | null = null;
-    if (shouldAdjustSwilePrime(paymentMethod)) {
-      const adjusted = await adjustSwilePrimeBalance(
-        supabase,
-        user.id,
-        -Number(amount)
-      );
-      if (adjusted.ok) {
-        swileNote = `${adjusted.assetName} → ${formatEuro(adjusted.nextValue)} (hors salaire)`;
-      } else {
-        swileNote =
-          "Dépense Swile OK, mais prime CSE introuvable — importe « Prime Noël Swile » dans Patrimoine.";
-      }
-    }
+    const swileNote =
+      paymentMethod === "swile"
+        ? "Swile = tickets resto (hors salaire). La Prime Noël se gère dans Patrimoine."
+        : null;
 
     return ok({ expense: data as Expense, swileNote });
   } catch (error) {
@@ -107,8 +92,6 @@ export async function deleteExpenseAction(
       return fail("Impossible de supprimer. Réessaie.");
     }
 
-    const expense = existing as Expense;
-
     const { data, error } = await supabase
       .from("expenses")
       .delete()
@@ -119,10 +102,6 @@ export async function deleteExpenseAction(
 
     if (error || !data) {
       return fail("Impossible de supprimer. Réessaie.");
-    }
-
-    if (shouldAdjustSwilePrime(expense.payment_method)) {
-      await adjustSwilePrimeBalance(supabase, user.id, Number(expense.amount));
     }
 
     return ok({ id });

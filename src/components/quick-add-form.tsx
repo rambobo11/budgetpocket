@@ -6,6 +6,8 @@ import { createExpenseAction } from "@/app/actions/expenses";
 import { defaultDateForMonth, monthBounds } from "@/lib/expenses";
 import {
   CATEGORIES,
+  PAYMENT_METHODS,
+  PAYMENT_METHOD_LABELS,
   type Category,
   type Expense,
   type PaymentMethod,
@@ -97,7 +99,7 @@ export function QuickAddForm({
           Ajout rapide
         </h2>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Ajoutez une dépense. Swile = prime CSE (pas le salaire).
+          Ajoutez une dépense. Swile = tickets resto (hors salaire).
         </p>
       </div>
 
@@ -131,29 +133,21 @@ export function QuickAddForm({
           <Label className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
             Paiement
           </Label>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setPaymentMethod("cb")}
-              className={`h-11 rounded-xl border text-sm font-medium transition-colors ${
-                paymentMethod === "cb"
-                  ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                  : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400"
-              }`}
-            >
-              CB
-            </button>
-            <button
-              type="button"
-              onClick={() => setPaymentMethod("swile")}
-              className={`h-11 rounded-xl border text-sm font-medium transition-colors ${
-                paymentMethod === "swile"
-                  ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                  : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400"
-              }`}
-            >
-              Swile
-            </button>
+          <div className="grid grid-cols-3 gap-2">
+            {PAYMENT_METHODS.map((method) => (
+              <button
+                key={method}
+                type="button"
+                onClick={() => setPaymentMethod(method)}
+                className={`h-11 rounded-xl border text-sm font-medium transition-colors ${
+                  paymentMethod === method
+                    ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                    : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400"
+                }`}
+              >
+                {PAYMENT_METHOD_LABELS[method]}
+              </button>
+            ))}
           </div>
         </div>
 

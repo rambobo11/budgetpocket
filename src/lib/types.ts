@@ -1,6 +1,12 @@
-export const PAYMENT_METHODS = ["cb", "swile"] as const;
+export const PAYMENT_METHODS = ["cb", "swile", "cash"] as const;
 
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  cb: "CB",
+  swile: "Swile",
+  cash: "Cash",
+};
 
 export const CATEGORIES = [
   "Food et courses",

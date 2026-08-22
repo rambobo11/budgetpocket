@@ -30,8 +30,10 @@ export type MonthKpis = {
   count: number;
   cbTotal: number;
   swileTotal: number;
+  cashTotal: number;
   cbCount: number;
   swileCount: number;
+  cashCount: number;
   byCategory: CategoryBreakdown[];
   dailyAverage: number;
 };
@@ -55,6 +57,7 @@ export type ExpenseInsights = {
   topCategory: CategoryBreakdown | null;
   cbSharePercent: number | null;
   swileSharePercent: number | null;
+  cashSharePercent: number | null;
   /** Projection fin de mois (mois courant uniquement). */
   projectedTotal: number | null;
   daysElapsed: number;
@@ -67,8 +70,10 @@ export function computeMonthKpis(expenses: Expense[]): MonthKpis {
 
   let cbTotal = 0;
   let swileTotal = 0;
+  let cashTotal = 0;
   let cbCount = 0;
   let swileCount = 0;
+  let cashCount = 0;
 
   const categoryMap = new Map<string, { amount: number; count: number }>();
 
@@ -79,6 +84,9 @@ export function computeMonthKpis(expenses: Expense[]): MonthKpis {
     if (method === "swile") {
       swileTotal += amount;
       swileCount += 1;
+    } else if (method === "cash") {
+      cashTotal += amount;
+      cashCount += 1;
     } else {
       cbTotal += amount;
       cbCount += 1;
@@ -114,8 +122,10 @@ export function computeMonthKpis(expenses: Expense[]): MonthKpis {
     count,
     cbTotal,
     swileTotal,
+    cashTotal,
     cbCount,
     swileCount,
+    cashCount,
     byCategory,
     dailyAverage: uniqueDays > 0 ? total / uniqueDays : 0,
   };
@@ -180,6 +190,8 @@ export function computeExpenseInsights(
     kpis.total > 0 ? (kpis.cbTotal / kpis.total) * 100 : null;
   const swileSharePercent =
     kpis.total > 0 ? (kpis.swileTotal / kpis.total) * 100 : null;
+  const cashSharePercent =
+    kpis.total > 0 ? (kpis.cashTotal / kpis.total) * 100 : null;
 
   const daysInMonth = endOfMonth(month).getDate();
   const now = nowInAppTz();
@@ -197,6 +209,7 @@ export function computeExpenseInsights(
     topCategory,
     cbSharePercent,
     swileSharePercent,
+    cashSharePercent,
     projectedTotal,
     daysElapsed,
     daysInMonth,
