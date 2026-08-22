@@ -99,7 +99,7 @@ export function QuickAddForm({
           Ajout rapide
         </h2>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Ajoutez une dépense. Swile = tickets resto (hors salaire).
+          Ajoutez une dépense. CB et Cash (ATM) = salaire · Swile = tickets resto.
         </p>
       </div>
 

@@ -1,7 +1,7 @@
 import type { Asset, Expense, PaymentMethod } from "@/lib/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-/** Dépense qui pèse sur le salaire (hors Swile / primes CSE). */
+/** Dépense qui pèse sur le salaire : CB + Cash (retrait ATM). Swile = tickets resto CSE. */
 export function isSalaryExpense(
   expense: Pick<Expense, "payment_method">
 ): boolean {
@@ -91,5 +91,5 @@ export function shouldAdjustSwilePrime(
   return false;
 }
 
-/** Solde réel restant après creatine 25 € (50,71 → 25,71). */
+/** Solde cible après creatine 25 € (50,71 → 25,71) — used by repair action. */
 export const CHRISTMAS_SWILE_PRIME_REPAIR_EUR = 25.71;

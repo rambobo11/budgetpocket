@@ -245,7 +245,8 @@ export function StatsDashboard({
               {insights.cashSharePercent != null
                 ? `${insights.cashSharePercent.toFixed(0)}% · `
                 : ""}
-              {kpis.cashCount} dépense{kpis.cashCount > 1 ? "s" : ""}
+              ATM · salaire · {kpis.cashCount} dépense
+              {kpis.cashCount > 1 ? "s" : ""}
             </p>
           </section>
 

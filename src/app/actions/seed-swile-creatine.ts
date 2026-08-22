@@ -2,7 +2,6 @@
 
 import { fromZonedTime } from "date-fns-tz";
 import { APP_TIMEZONE } from "@/lib/date";
-import { adjustSwilePrimeBalance } from "@/lib/swile-prime";
 import {
   AuthError,
   assertSeedImportAllowed,
@@ -95,8 +94,7 @@ export async function ensureSwileCreatineExpenseAction(): Promise<
       return ok({ created: false, expenseId: null });
     }
 
-    await adjustSwilePrimeBalance(supabase, user.id, -SEED_AMOUNT);
-
+    // Ne plus débiter Prime Noël ici — solde géré dans Patrimoine.
     return ok({ created: true, expenseId: data.id as string });
   } catch (error) {
     if (error instanceof AuthError) {
