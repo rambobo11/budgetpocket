@@ -37,6 +37,7 @@ import { usePrivacy } from "@/components/privacy-provider";
 import { AppNav } from "@/components/app-nav";
 import { PageShell } from "@/components/page-shell";
 import { CashflowSankey } from "@/components/cashflow-sankey";
+import { CategoryBreakdownSection } from "@/components/category-breakdown";
 import { ExpensePaceChart } from "@/components/expense-pace-chart";
 import { Button } from "@/components/ui/button";
 
@@ -321,50 +322,10 @@ export function StatsDashboard({
           </div>
         </section>
 
-        <section className="rounded-[1.75rem] border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="border-b border-zinc-100 px-5 py-4 dark:border-zinc-800">
-            <h2 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-              Par catégorie
-            </h2>
-            <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
-              Répartition du mois
-            </p>
-          </div>
-
-          {kpis.byCategory.length === 0 ? (
-            <p className="px-5 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
-              Aucune dépense ce mois-ci.
-              <br />
-              Importe ton historique ou ajoute via Ajout rapide.
-            </p>
-          ) : (
-            <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
-              {kpis.byCategory.map((item) => (
-                <li key={item.category} className="px-5 py-4">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-[15px] font-medium text-zinc-900 dark:text-zinc-50">
-                        {item.category}
-                      </p>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                        {item.count} · {item.percent.toFixed(0)}%
-                      </p>
-                    </div>
-                    <p className="shrink-0 text-[15px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-                      {mask(formatEuro(item.amount))}
-                    </p>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-                    <div
-                      className="h-full rounded-full bg-zinc-900 dark:bg-zinc-100"
-                      style={{ width: `${Math.max(item.percent, 2)}%` }}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <CategoryBreakdownSection
+          byCategory={kpis.byCategory}
+          expenses={expenses}
+        />
       </div>
     </PageShell>
   );
