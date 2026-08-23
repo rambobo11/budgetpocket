@@ -177,8 +177,7 @@ export async function syncBinancePortfolioAction(): Promise<
 
     for (const holding of BINANCE_HOLDINGS) {
       const coin = getCryptoCoin(holding.coingeckoId);
-      const price = prices[holding.coingeckoId];
-      if (!coin || price == null) continue;
+      if (!coin) continue;
 
       const existingId = assetByCoin.get(holding.coingeckoId);
 
@@ -194,16 +193,23 @@ export async function syncBinancePortfolioAction(): Promise<
         continue;
       }
 
-      const valueEur = cryptoValueEur(holding.quantity, price);
+      const price = prices[holding.coingeckoId];
+      // Prix manquant : on met quand même la qté à jour (valeur provisoire 0).
+      const valueEur =
+        price != null ? cryptoValueEur(holding.quantity, price) : 0;
 
       if (existingId) {
         const { error } = await supabase
           .from("assets")
           .update({
             quantity: holding.quantity,
-            value_original: valueEur,
-            value_eur: valueEur,
-            currency: "EUR",
+            ...(price != null
+              ? {
+                  value_original: valueEur,
+                  value_eur: valueEur,
+                  currency: "EUR" as const,
+                }
+              : {}),
             name: `${coin.name} (${coin.symbol})`,
             notes: "Binance",
             updated_at: now,
