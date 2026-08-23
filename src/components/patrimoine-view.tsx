@@ -21,9 +21,7 @@ import {
   migrateAnnexeCLabelAction,
   refreshCryptoPricesAction,
 } from "@/app/actions/assets";
-import { LogoutButton } from "@/components/logout-button";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { PrivacyToggle } from "@/components/privacy-toggle";
+import { AppHeader } from "@/components/app-header";
 import { usePrivacy } from "@/components/privacy-provider";
 import { AppNav } from "@/components/app-nav";
 import { PageShell } from "@/components/page-shell";
@@ -175,51 +173,47 @@ export function PatrimoineView({
 
   return (
     <PageShell>
-      <header className="mb-4 flex items-start justify-between gap-3 sm:gap-4">
-        <div className="min-w-0">
-          <p className="text-sm font-medium tracking-[0.08em] text-zinc-400 uppercase dark:text-zinc-500">
-            PocketBudget
-          </p>
-          <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-zinc-900 md:text-3xl dark:text-zinc-50">
+      <AppHeader
+        title={
+          <h1 className="text-[28px] font-semibold tracking-tight text-zinc-900 md:text-3xl dark:text-zinc-50">
             Patrimoine
           </h1>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <Button
-            type="button"
-            onClick={() => {
-              setShowAddPatrimoine((open) => !open);
-              setShowAddAvantage(false);
-            }}
-            className="h-9 gap-1.5 rounded-full bg-zinc-900 px-3.5 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-            aria-label="Ajouter au patrimoine"
-          >
-            <Plus className="size-4" />
-            <span className="hidden sm:inline">Ajouter</span>
-          </Button>
-          {hasLiveCrypto ? (
+        }
+        actions={
+          <>
             <Button
               type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => void refreshPrices()}
-              disabled={refreshing}
-              className="size-9 rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-              aria-label="Actualiser les prix crypto"
-              title="Actualiser les prix crypto"
+              onClick={() => {
+                setShowAddPatrimoine((open) => !open);
+                setShowAddAvantage(false);
+              }}
+              className="h-9 gap-1.5 rounded-full bg-zinc-900 px-3.5 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+              aria-label="Ajouter au patrimoine"
             >
-              {refreshing ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <RefreshCw className="size-4" />
-              )}
+              <Plus className="size-4" />
+              <span className="hidden sm:inline">Ajouter</span>
             </Button>
-          ) : null}
-          <ThemeToggle />
-          <PrivacyToggle />
-          <LogoutButton />
-        </div>
-      </header>
+            {hasLiveCrypto ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => void refreshPrices()}
+                disabled={refreshing}
+                className="size-9 rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                aria-label="Actualiser les prix crypto"
+                title="Actualiser les prix crypto"
+              >
+                {refreshing ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="size-4" />
+                )}
+              </Button>
+            ) : null}
+          </>
+        }
+      />
 
       <AppNav />
 

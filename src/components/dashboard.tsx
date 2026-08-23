@@ -8,15 +8,14 @@ import {
   startOfMonth,
   subMonths,
 } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { fr } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Expense } from "@/lib/types";
-import { currentMonthStart, nowInAppTz } from "@/lib/date";
+import { APP_TIMEZONE, currentMonthStart, nowInAppTz } from "@/lib/date";
 import { fetchExpensesForMonth } from "@/lib/expenses";
 import { formatEuro } from "@/lib/format";
-import { LogoutButton } from "@/components/logout-button";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { PrivacyToggle } from "@/components/privacy-toggle";
+import { AppHeader } from "@/components/app-header";
 import { usePrivacy } from "@/components/privacy-provider";
 import { QuickAddForm } from "@/components/quick-add-form";
 import { ExpenseList } from "@/components/expense-list";
@@ -70,14 +69,37 @@ export function Dashboard({ initialExpenses }: DashboardProps) {
     setExpenses((previous) => previous.filter((expense) => expense.id !== id));
   }
 
+  function handleExpenseUpdated(expense: Expense) {
+    const expenseMonth = formatInTimeZone(
+      expense.created_at,
+      APP_TIMEZONE,
+      "yyyy-MM"
+    );
+    const selectedKey = format(selectedMonth, "yyyy-MM");
+
+    if (expenseMonth !== selectedKey) {
+      setExpenses((previous) =>
+        previous.filter((item) => item.id !== expense.id)
+      );
+      return;
+    }
+
+    setExpenses((previous) =>
+      [expense, ...previous.filter((item) => item.id !== expense.id)].sort(
+        (a, b) => {
+          const byTime = b.created_at.localeCompare(a.created_at);
+          if (byTime !== 0) return byTime;
+          return b.id.localeCompare(a.id);
+        }
+      )
+    );
+  }
+
   return (
     <PageShell>
-      <header className="mb-4 flex items-start justify-between gap-3 sm:gap-4">
-        <div className="min-w-0">
-          <p className="text-sm font-medium tracking-[0.08em] text-zinc-400 uppercase dark:text-zinc-500">
-            PocketBudget
-          </p>
-          <div className="mt-1 flex items-center gap-0.5 sm:gap-1">
+      <AppHeader
+        title={
+          <div className="flex items-center gap-0.5 sm:gap-1">
             <Button
               type="button"
               variant="ghost"
@@ -107,18 +129,15 @@ export function Dashboard({ initialExpenses }: DashboardProps) {
               <ChevronRight className="size-5" />
             </Button>
           </div>
-          <p className="mt-1.5 pl-8 text-sm text-zinc-500 tabular-nums sm:pl-9 dark:text-zinc-400">
+        }
+        meta={
+          <p className="pl-8 text-sm text-zinc-500 tabular-nums sm:pl-9 dark:text-zinc-400">
             {mask(formatEuro(monthTotal))}
             <span className="text-zinc-300 dark:text-zinc-600"> · </span>
             {expenses.length} dépense{expenses.length > 1 ? "s" : ""}
           </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-          <ThemeToggle />
-          <PrivacyToggle />
-          <LogoutButton />
-        </div>
-      </header>
+        }
+      />
 
       <AppNav />
 
@@ -135,6 +154,7 @@ export function Dashboard({ initialExpenses }: DashboardProps) {
         <ExpenseList
           expenses={expenses}
           onExpenseDeleted={handleExpenseDeleted}
+          onExpenseUpdated={handleExpenseUpdated}
         />
       </div>
     </PageShell>

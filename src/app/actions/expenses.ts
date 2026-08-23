@@ -1,12 +1,16 @@
 "use server";
 
-import { calendarDateWithNowTimeToIso } from "@/lib/date";
+import {
+  calendarDatePreservingTimeToIso,
+  calendarDateWithNowTimeToIso,
+} from "@/lib/date";
 import { AuthError, getAuthedClient } from "@/lib/security/auth";
 import { fail, ok, type ActionResult } from "@/lib/security/action-result";
 import { rateLimit } from "@/lib/security/rate-limit";
 import {
   createExpenseSchema,
   idSchema,
+  updateExpenseSchema,
 } from "@/lib/validation/schemas";
 import type { Expense } from "@/lib/types";
 
@@ -64,6 +68,65 @@ export async function createExpenseAction(
         : null;
 
     return ok({ expense: data as Expense, swileNote });
+  } catch (error) {
+    return mapAuthError(error);
+  }
+}
+
+export async function updateExpenseAction(
+  input: unknown
+): Promise<ActionResult<{ expense: Expense }>> {
+  try {
+    const parsed = updateExpenseSchema.safeParse(input);
+    if (!parsed.success) {
+      return fail(parsed.error.issues[0]?.message ?? "Données invalides.");
+    }
+
+    const { user, supabase } = await getAuthedClient();
+    const limited = rateLimit(`expense:update:${user.id}`, {
+      limit: 60,
+      windowMs: 60_000,
+    });
+    if (!limited.ok) {
+      return fail("Trop de requêtes. Réessaie dans un instant.");
+    }
+
+    const { id, amount, category, description, paymentMethod, date } =
+      parsed.data;
+
+    const { data: existing, error: loadError } = await supabase
+      .from("expenses")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (loadError || !existing) {
+      return fail("Dépense introuvable.");
+    }
+
+    const previous = existing as Expense;
+    const createdAt = calendarDatePreservingTimeToIso(date, previous.created_at);
+
+    const { data, error } = await supabase
+      .from("expenses")
+      .update({
+        amount,
+        category,
+        description,
+        payment_method: paymentMethod,
+        created_at: createdAt,
+      })
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      return fail("Impossible de modifier la dépense. Réessaie.");
+    }
+
+    return ok({ expense: data as Expense });
   } catch (error) {
     return mapAuthError(error);
   }

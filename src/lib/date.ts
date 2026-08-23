@@ -95,6 +95,32 @@ export function calendarDateWithNowTimeToIso(
   return fromZonedTime(localWall, APP_TIMEZONE).toISOString();
 }
 
+/**
+ * Change le jour calendaire en gardant l’heure Paris d’un `created_at` existant.
+ */
+export function calendarDatePreservingTimeToIso(
+  dateYmd: string,
+  existingIso: string
+): string {
+  if (!isRealCalendarDate(dateYmd)) {
+    return calendarDateToIso(dateYmd);
+  }
+
+  const zoned = toZonedTime(new Date(existingIso), APP_TIMEZONE);
+  const [year, month, day] = dateYmd.split("-").map(Number);
+  const localWall = new Date(
+    year,
+    month - 1,
+    day,
+    zoned.getHours(),
+    zoned.getMinutes(),
+    zoned.getSeconds(),
+    zoned.getMilliseconds()
+  );
+
+  return fromZonedTime(localWall, APP_TIMEZONE).toISOString();
+}
+
 /** Vérifie qu’une chaîne yyyy-MM-dd est un jour calendaire réel. */
 export function isRealCalendarDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;

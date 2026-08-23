@@ -13,9 +13,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Income } from "@/lib/types";
 import { currentMonthStart, nowInAppTz } from "@/lib/date";
 import { budgetMonthKey, fetchIncomesForMonth } from "@/lib/incomes";
-import { LogoutButton } from "@/components/logout-button";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { PrivacyToggle } from "@/components/privacy-toggle";
+import { AppHeader } from "@/components/app-header";
 import { AppNav } from "@/components/app-nav";
 import { PageShell } from "@/components/page-shell";
 import { IncomeForm } from "@/components/income-form";
@@ -74,12 +72,9 @@ export function IncomesView({ initialIncomes }: IncomesViewProps) {
 
   return (
     <PageShell>
-      <header className="mb-4 flex items-start justify-between gap-3 sm:gap-4">
-        <div className="min-w-0">
-          <p className="text-sm font-medium tracking-[0.08em] text-zinc-400 uppercase dark:text-zinc-500">
-            PocketBudget
-          </p>
-          <div className="mt-1 flex items-center gap-0.5 sm:gap-1">
+      <AppHeader
+        title={
+          <div className="flex items-center gap-0.5 sm:gap-1">
             <Button
               type="button"
               variant="ghost"
@@ -109,13 +104,8 @@ export function IncomesView({ initialIncomes }: IncomesViewProps) {
               <ChevronRight className="size-5" />
             </Button>
           </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-          <ThemeToggle />
-          <PrivacyToggle />
-          <LogoutButton />
-        </div>
-      </header>
+        }
+      />
 
       <AppNav />
 

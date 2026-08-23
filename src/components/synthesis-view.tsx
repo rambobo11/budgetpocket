@@ -15,9 +15,7 @@ import {
   type SynthesisSections,
 } from "@/lib/synthesis";
 import { createClient } from "@/lib/supabase/client";
-import { LogoutButton } from "@/components/logout-button";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { PrivacyToggle } from "@/components/privacy-toggle";
+import { AppHeader } from "@/components/app-header";
 import { AppNav } from "@/components/app-nav";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
@@ -142,24 +140,14 @@ export function SynthesisView({
 
   return (
     <PageShell>
-      <header className="mb-4 flex items-start justify-between gap-3 sm:gap-4">
-        <div className="min-w-0">
-          <p className="text-sm font-medium tracking-[0.08em] text-zinc-400 uppercase dark:text-zinc-500">
-            PocketBudget
-          </p>
-          <h1 className="mt-1 text-xl font-semibold tracking-tight text-zinc-900 sm:text-2xl md:text-3xl dark:text-zinc-50">
+      <AppHeader
+        title={
+          <h1 className="text-xl font-semibold tracking-tight text-zinc-900 sm:text-2xl md:text-3xl dark:text-zinc-50">
             Synthèse
           </h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Markdown prêt à coller dans une IA finance / investissement.
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-          <ThemeToggle />
-          <PrivacyToggle />
-          <LogoutButton />
-        </div>
-      </header>
+        }
+        subtitle="Markdown prêt à coller dans une IA finance / investissement."
+      />
 
       <AppNav />
 

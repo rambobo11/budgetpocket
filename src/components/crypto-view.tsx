@@ -15,12 +15,10 @@ import {
 } from "@/app/actions/crypto-trades";
 import { refreshCryptoPricesAction } from "@/app/actions/assets";
 import { CryptoTradeForm } from "@/components/crypto-trade-form";
+import { AppHeader } from "@/components/app-header";
 import { AppNav } from "@/components/app-nav";
 import { DeleteConfirmButton } from "@/components/delete-confirm-button";
-import { LogoutButton } from "@/components/logout-button";
 import { PageShell } from "@/components/page-shell";
-import { PrivacyToggle } from "@/components/privacy-toggle";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { usePrivacy } from "@/components/privacy-provider";
 import { Button } from "@/components/ui/button";
 import {
@@ -169,24 +167,14 @@ export function CryptoView({ initialTrades, initialAssets }: CryptoViewProps) {
 
   return (
     <PageShell>
-      <header className="mb-4 flex items-start justify-between gap-3 sm:gap-4">
-        <div className="min-w-0">
-          <p className="text-sm font-medium tracking-[0.08em] text-zinc-400 uppercase dark:text-zinc-500">
-            PocketBudget
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl dark:text-zinc-50">
+      <AppHeader
+        title={
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl dark:text-zinc-50">
             Crypto
           </h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Wallet Binance · coût · floating PnL
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <PrivacyToggle />
-          <ThemeToggle />
-          <LogoutButton />
-        </div>
-      </header>
+        }
+        subtitle="Wallet Binance · coût · floating PnL"
+      />
 
       <AppNav />
 

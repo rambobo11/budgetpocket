@@ -106,6 +106,10 @@ export const createExpenseSchema = z.object({
   date: dateYmd,
 });
 
+export const updateExpenseSchema = createExpenseSchema.extend({
+  id: uuidSchema,
+});
+
 export const createIncomeSchema = z.object({
   amount: amountPositive,
   source: z.enum(INCOME_SOURCES),
@@ -244,6 +248,7 @@ export const updateSubscriptionStatusSchema = z.object({
 });
 
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
+export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>;
 export type CreateIncomeInput = z.infer<typeof createIncomeSchema>;
 export type CreateAssetInput = z.infer<typeof createAssetSchema>;
 export type CreateCreditInput = z.infer<typeof createCreditSchema>;
