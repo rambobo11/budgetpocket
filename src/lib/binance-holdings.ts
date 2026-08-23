@@ -12,31 +12,32 @@ export type BinanceHolding = {
  * Qté + coût moyen issus de l’Asset View Binance (août 2026).
  */
 export const BINANCE_HOLDINGS: BinanceHolding[] = [
+  { coingeckoId: "solana", quantity: 4.52456548, avgCostUsdt: 176.42 },
   { coingeckoId: "usd-coin", quantity: 400.27585839, avgCostUsdt: null },
+  { coingeckoId: "aave", quantity: 0.39637185, avgCostUsdt: 204.8 },
   { coingeckoId: "bitcoin", quantity: 0.00061938, avgCostUsdt: 64108 },
-  { coingeckoId: "solana", quantity: 4.51826703, avgCostUsdt: 176.42 },
-  { coingeckoId: "cardano", quantity: 187.18818476, avgCostUsdt: 1.97 },
-  { coingeckoId: "aave", quantity: 0.39635798, avgCostUsdt: 204.8 },
+  { coingeckoId: "cardano", quantity: 187.27336843, avgCostUsdt: 1.97 },
   {
     coingeckoId: "internet-computer",
-    quantity: 3.43846727,
+    quantity: 3.44073657,
     avgCostUsdt: 30.8,
   },
   {
     coingeckoId: "polygon-ecosystem-token",
-    quantity: 71.19694677,
+    quantity: 71.2441481,
     avgCostUsdt: 0,
   },
-  { coingeckoId: "enjincoin", quantity: 99.93629717, avgCostUsdt: 2.64 },
-  { coingeckoId: "coti", quantity: 180.22791876, avgCostUsdt: 0.61 },
-  { coingeckoId: "the-sandbox", quantity: 31.79292387, avgCostUsdt: 3.76 },
-  { coingeckoId: "gala", quantity: 153.35861359, avgCostUsdt: null },
-  { coingeckoId: "pepe", quantity: 31548.13, avgCostUsdt: null },
-  { coingeckoId: "wormhole", quantity: 2.43744594, avgCostUsdt: null },
-  { coingeckoId: "pixels", quantity: 3.74085635, avgCostUsdt: null },
-  { coingeckoId: "terra-luna", quantity: 250, avgCostUsdt: null },
-  { coingeckoId: "binancecoin", quantity: 0.00000626, avgCostUsdt: null },
-  { coingeckoId: "terra-luna-2", quantity: 0.00382638, avgCostUsdt: null },
+  { coingeckoId: "enjincoin", quantity: 100.05500359, avgCostUsdt: 2.64 },
+  { coingeckoId: "coti", quantity: 181.42767981, avgCostUsdt: 0.61 },
+  { coingeckoId: "the-sandbox", quantity: 31.80019213, avgCostUsdt: 3.76 },
+  // Dust / < 1 USD (masqués dans Binance) — gardés à 0 pour nettoyer le patrimoine
+  { coingeckoId: "gala", quantity: 0, avgCostUsdt: null },
+  { coingeckoId: "pepe", quantity: 0, avgCostUsdt: null },
+  { coingeckoId: "wormhole", quantity: 0, avgCostUsdt: null },
+  { coingeckoId: "pixels", quantity: 0, avgCostUsdt: null },
+  { coingeckoId: "terra-luna", quantity: 0, avgCostUsdt: null },
+  { coingeckoId: "binancecoin", quantity: 0, avgCostUsdt: null },
+  { coingeckoId: "terra-luna-2", quantity: 0, avgCostUsdt: null },
 ];
 
 export const BINANCE_COST_SEED_NOTE = "seed:binance-avg-cost";

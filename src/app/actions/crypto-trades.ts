@@ -180,8 +180,21 @@ export async function syncBinancePortfolioAction(): Promise<
       const price = prices[holding.coingeckoId];
       if (!coin || price == null) continue;
 
-      const valueEur = cryptoValueEur(holding.quantity, price);
       const existingId = assetByCoin.get(holding.coingeckoId);
+
+      if (holding.quantity <= 0) {
+        if (existingId) {
+          const { error } = await supabase
+            .from("assets")
+            .delete()
+            .eq("id", existingId)
+            .eq("user_id", user.id);
+          if (!error) assetsUpserted += 1;
+        }
+        continue;
+      }
+
+      const valueEur = cryptoValueEur(holding.quantity, price);
 
       if (existingId) {
         const { error } = await supabase

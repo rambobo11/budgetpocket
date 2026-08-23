@@ -127,9 +127,6 @@ export function CryptoView({ initialTrades, initialAssets }: CryptoViewProps) {
     [positions]
   );
   const positivePnl = kpis.floatingPnlEur >= 0;
-  /** Sync utile uniquement si le wallet Binance n’est pas encore en patrimoine. */
-  const showSyncBinance = holdings.length === 0;
-
   async function handleRefreshPrices() {
     await loadMarketPrices(coinIds, true);
   }
@@ -248,22 +245,20 @@ export function CryptoView({ initialTrades, initialAssets }: CryptoViewProps) {
                 )}
                 Actualiser les prix
               </Button>
-              {showSyncBinance ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={syncLoading}
-                  onClick={() => void handleSyncBinance()}
-                  className="h-10 rounded-full"
-                >
-                  {syncLoading ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="size-4" />
-                  )}
-                  Sync Binance (BTC + coins)
-                </Button>
-              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                disabled={syncLoading}
+                onClick={() => void handleSyncBinance()}
+                className="h-10 rounded-full"
+              >
+                {syncLoading ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="size-4" />
+                )}
+                Sync Binance (qtés)
+              </Button>
             </div>
           </div>
           {message ? (
@@ -271,10 +266,8 @@ export function CryptoView({ initialTrades, initialAssets }: CryptoViewProps) {
           ) : (
             <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
               Valeur = wallet Binance (USDC inclus). Floating PnL = coins avec
-              prix de revient.
-              {showSyncBinance
-                ? " Sync importe les qtés Patrimoine."
-                : null}
+              prix de revient. Sync met à jour les quantités depuis le snapshot
+              Binance.
             </p>
           )}
         </section>
@@ -328,9 +321,8 @@ export function CryptoView({ initialTrades, initialAssets }: CryptoViewProps) {
 
           {positions.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
-              {showSyncBinance
-                ? "Aucune position. Tape « Sync Binance » pour importer BTC + tes coins (USDC inclus)."
-                : "Aucune position pour le moment."}
+              Aucune position. Tape « Sync Binance » pour importer tes coins
+              (USDC inclus).
             </p>
           ) : (
             <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
