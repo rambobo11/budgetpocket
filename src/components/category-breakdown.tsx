@@ -10,6 +10,8 @@ import type { CategoryBreakdown } from "@/lib/kpis";
 import type { Expense } from "@/lib/types";
 import { usePrivacy } from "@/components/privacy-provider";
 
+const INITIAL_VISIBLE = 5;
+
 type CategoryBreakdownSectionProps = {
   byCategory: CategoryBreakdown[];
   expenses: Expense[];
@@ -21,6 +23,79 @@ function sortNewestFirst(expenses: Expense[]) {
     if (byTime !== 0) return byTime;
     return b.id.localeCompare(a.id);
   });
+}
+
+function CategoryExpenseList({ expenses }: { expenses: Expense[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const { mask } = usePrivacy();
+
+  const hasMore = expenses.length > INITIAL_VISIBLE;
+  const visible =
+    expanded || !hasMore ? expenses : expenses.slice(0, INITIAL_VISIBLE);
+  const hiddenCount = expenses.length - INITIAL_VISIBLE;
+
+  if (expenses.length === 0) {
+    return (
+      <p className="px-5 py-4 text-sm text-zinc-500 dark:text-zinc-400">
+        Aucune dépense dans cette catégorie.
+      </p>
+    );
+  }
+
+  return (
+    <div className="border-t border-zinc-100 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-950/40">
+      <ul className="divide-y divide-zinc-100/80 dark:divide-zinc-800/80">
+        {visible.map((expense) => (
+          <li
+            key={expense.id}
+            className="flex items-start justify-between gap-3 px-5 py-3"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-zinc-800 dark:text-zinc-100">
+                {expense.description?.trim() || expense.category}
+              </p>
+              <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                <span>
+                  {formatInTimeZone(
+                    expense.created_at,
+                    APP_TIMEZONE,
+                    "d MMM · HH:mm",
+                    { locale: fr }
+                  )}
+                </span>
+                {expense.payment_method === "swile" ? (
+                  <span className="rounded bg-emerald-50 px-1 py-px text-[10px] font-semibold tracking-wide text-emerald-700 uppercase dark:bg-emerald-950 dark:text-emerald-400">
+                    Swile
+                  </span>
+                ) : expense.payment_method === "cash" ? (
+                  <span className="rounded bg-amber-50 px-1 py-px text-[10px] font-semibold tracking-wide text-amber-800 uppercase dark:bg-amber-950 dark:text-amber-300">
+                    Cash
+                  </span>
+                ) : null}
+              </p>
+            </div>
+            <p className="shrink-0 text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+              {mask(formatEuro(Number(expense.amount)))}
+            </p>
+          </li>
+        ))}
+      </ul>
+
+      {hasMore ? (
+        <div className="border-t border-zinc-100/80 px-4 py-2 dark:border-zinc-800/80">
+          <button
+            type="button"
+            onClick={() => setExpanded((value) => !value)}
+            className="w-full rounded-xl py-2 text-center text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100/80 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-50"
+          >
+            {expanded
+              ? "Voir moins"
+              : `Voir plus (${hiddenCount} autre${hiddenCount > 1 ? "s" : ""})`}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function CategoryBreakdownSection({
@@ -83,7 +158,7 @@ export function CategoryBreakdownSection({
           Par catégorie
         </h2>
         <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
-          Touche pour voir le détail · scroll dans la liste
+          Touche pour voir le détail
         </p>
       </div>
 
@@ -94,7 +169,7 @@ export function CategoryBreakdownSection({
             expensesByCategory.get(item.category) ?? [];
 
           return (
-            <li key={item.category} className="relative">
+            <li key={item.category}>
               <button
                 type="button"
                 onClick={() =>
@@ -140,64 +215,7 @@ export function CategoryBreakdownSection({
                 }`}
               >
                 <div className="min-h-0 overflow-hidden">
-                  <div className="relative border-t border-zinc-100 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-950/40">
-                    <div
-                      className="max-h-[min(20rem,50vh)] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] scroll-smooth"
-                      style={{
-                        scrollbarGutter: "stable",
-                      }}
-                    >
-                      {categoryExpenses.length === 0 ? (
-                        <p className="px-5 py-4 text-sm text-zinc-500 dark:text-zinc-400">
-                          Aucune dépense dans cette catégorie.
-                        </p>
-                      ) : (
-                        <ul className="divide-y divide-zinc-100/80 dark:divide-zinc-800/80">
-                          {categoryExpenses.map((expense) => (
-                            <li
-                              key={expense.id}
-                              className="flex items-start justify-between gap-3 px-5 py-3"
-                            >
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                                  {expense.description?.trim() ||
-                                    expense.category}
-                                </p>
-                                <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-                                  <span>
-                                    {formatInTimeZone(
-                                      expense.created_at,
-                                      APP_TIMEZONE,
-                                      "d MMM · HH:mm",
-                                      { locale: fr }
-                                    )}
-                                  </span>
-                                  {expense.payment_method === "swile" ? (
-                                    <span className="rounded bg-emerald-50 px-1 py-px text-[10px] font-semibold tracking-wide text-emerald-700 uppercase dark:bg-emerald-950 dark:text-emerald-400">
-                                      Swile
-                                    </span>
-                                  ) : expense.payment_method === "cash" ? (
-                                    <span className="rounded bg-amber-50 px-1 py-px text-[10px] font-semibold tracking-wide text-amber-800 uppercase dark:bg-amber-950 dark:text-amber-300">
-                                      Cash
-                                    </span>
-                                  ) : null}
-                                </p>
-                              </div>
-                              <p className="shrink-0 text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-                                {mask(formatEuro(Number(expense.amount)))}
-                              </p>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                    {categoryExpenses.length > 5 ? (
-                      <div
-                        aria-hidden
-                        className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-linear-to-t from-zinc-50 to-transparent dark:from-zinc-950/80"
-                      />
-                    ) : null}
-                  </div>
+                  <CategoryExpenseList expenses={categoryExpenses} />
                 </div>
               </div>
             </li>
