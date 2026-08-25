@@ -8,6 +8,7 @@ import {
   computeExpensePaceSeries,
   formatEuro,
   formatSignedEuro,
+  type ExpensePacePoint,
 } from "@/lib/kpis";
 import { usePrivacy } from "@/components/privacy-provider";
 
@@ -25,8 +26,12 @@ const BAR_HEIGHT_RATIO = 0.42;
 /** Couleurs SVG explicites — Tailwind fill/dark:fill est peu fiable sur <svg>. */
 const CHART_COLORS = {
   light: {
-    bar: "#0d9488",
-    barActive: "#0f766e",
+    cb: "#3f3f46",
+    cbActive: "#27272a",
+    swile: "#059669",
+    swileActive: "#047857",
+    cash: "#d97706",
+    cashActive: "#b45309",
     barLabel: "#115e59",
     line: "#18181b",
     previous: "#78716c",
@@ -36,8 +41,12 @@ const CHART_COLORS = {
     dot: "#18181b",
   },
   dark: {
-    bar: "#2dd4bf",
-    barActive: "#5eead4",
+    cb: "#a1a1aa",
+    cbActive: "#e4e4e7",
+    swile: "#34d399",
+    swileActive: "#6ee7b7",
+    cash: "#fbbf24",
+    cashActive: "#fcd34d",
     barLabel: "#99f6e4",
     line: "#fafafa",
     previous: "#d6d3d1",
@@ -47,6 +56,8 @@ const CHART_COLORS = {
     dot: "#fafafa",
   },
 } as const;
+
+type ChartColors = (typeof CHART_COLORS)[keyof typeof CHART_COLORS];
 
 function buildPath(
   values: number[],
@@ -75,6 +86,33 @@ function buildArea(
   return `${line} L${lastX.toFixed(1)} ${baselineY.toFixed(1)} L${firstX.toFixed(1)} ${baselineY.toFixed(1)} Z`;
 }
 
+function stackedSegments(
+  point: ExpensePacePoint,
+  colors: ChartColors,
+  active: boolean
+) {
+  return [
+    {
+      key: "cb",
+      label: "CB",
+      amount: point.cbDaily,
+      color: active ? colors.cbActive : colors.cb,
+    },
+    {
+      key: "swile",
+      label: "Swile",
+      amount: point.swileDaily,
+      color: active ? colors.swileActive : colors.swile,
+    },
+    {
+      key: "cash",
+      label: "Cash",
+      amount: point.cashDaily,
+      color: active ? colors.cashActive : colors.cash,
+    },
+  ].filter((segment) => segment.amount > 0);
+}
+
 export function ExpensePaceChart({
   month,
   expenses,
@@ -85,6 +123,7 @@ export function ExpensePaceChart({
   const isDark = resolvedTheme === "dark";
   const colors = isDark ? CHART_COLORS.dark : CHART_COLORS.light;
   const gradientId = useId().replace(/:/g, "");
+  const clipPrefix = useId().replace(/:/g, "");
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [pinnedIndex, setPinnedIndex] = useState<number | null>(null);
 
@@ -112,12 +151,9 @@ export function ExpensePaceChart({
     const xAt = (i: number) => PAD.left + (i / n) * innerW;
     const yAt = (v: number) =>
       PAD.top + innerH - (v / maxCumulative) * innerH;
-    const barY = (daily: number) => {
+    const barHeight = (daily: number) => {
       const h = (daily / maxDaily) * innerH * BAR_HEIGHT_RATIO;
-      return {
-        y: PAD.top + innerH - h,
-        height: Math.max(h, daily > 0 ? 3 : 0),
-      };
+      return Math.max(h, daily > 0 ? 3 : 0);
     };
     const baselineY = PAD.top + innerH;
 
@@ -139,10 +175,11 @@ export function ExpensePaceChart({
     return {
       xAt,
       yAt,
-      barY,
+      barHeight,
       barWidth,
       baselineY,
       innerH,
+      maxDaily,
       currentPath: buildPath(currentValues, xAt, yAt),
       previousPath: buildPath(previousValues, xAt, yAt),
       areaPath: buildArea(currentValues, xAt, yAt, baselineY),
@@ -206,9 +243,23 @@ export function ExpensePaceChart({
         <span className="inline-flex items-center gap-1.5">
           <span
             className="inline-block size-2.5 rounded-sm"
-            style={{ backgroundColor: colors.bar }}
+            style={{ backgroundColor: colors.cb }}
           />
-          Jour
+          CB
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            className="inline-block size-2.5 rounded-sm"
+            style={{ backgroundColor: colors.swile }}
+          />
+          Swile
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            className="inline-block size-2.5 rounded-sm"
+            style={{ backgroundColor: colors.cash }}
+          />
+          Cash
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span
@@ -260,6 +311,28 @@ export function ExpensePaceChart({
           >
             {mask(formatEuro(active.currentDaily))}
           </p>
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs tabular-nums">
+            {active.cbDaily > 0 ? (
+              <span style={{ color: colors.cb }}>
+                CB {mask(formatEuro(active.cbDaily))}
+              </span>
+            ) : null}
+            {active.swileDaily > 0 ? (
+              <span style={{ color: colors.swile }}>
+                Swile {mask(formatEuro(active.swileDaily))}
+              </span>
+            ) : null}
+            {active.cashDaily > 0 ? (
+              <span style={{ color: colors.cash }}>
+                Cash {mask(formatEuro(active.cashDaily))}
+              </span>
+            ) : null}
+            {active.currentDaily <= 0 ? (
+              <span style={{ color: isDark ? "#a1a1aa" : "#52525b" }}>
+                Aucune dépense
+              </span>
+            ) : null}
+          </div>
           <p
             className="mt-1 text-xs tabular-nums"
             style={{ color: isDark ? "#a1a1aa" : "#52525b" }}
@@ -276,7 +349,7 @@ export function ExpensePaceChart({
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           className="h-auto w-full min-w-[300px] cursor-crosshair"
           role="img"
-          aria-label="Dépenses journalières et cumul du mois versus mois précédent"
+          aria-label="Dépenses journalières CB Swile Cash et cumul du mois versus mois précédent"
           onMouseLeave={() => setHoverIndex(null)}
         >
           <defs>
@@ -284,6 +357,25 @@ export function ExpensePaceChart({
               <stop offset="0%" stopColor={colors.area} stopOpacity="0.22" />
               <stop offset="100%" stopColor={colors.area} stopOpacity="0" />
             </linearGradient>
+            {series.points.map((point, index) => {
+              const totalH = chart.barHeight(point.currentDaily);
+              if (totalH <= 0) return null;
+              const cx = chart.xAt(index);
+              return (
+                <clipPath
+                  key={`clip-${point.day}`}
+                  id={`${clipPrefix}-${point.day}`}
+                >
+                  <rect
+                    x={cx - chart.barWidth / 2}
+                    y={chart.baselineY - totalH}
+                    width={chart.barWidth}
+                    height={totalH}
+                    rx={4}
+                  />
+                </clipPath>
+              );
+            })}
           </defs>
 
           {chart.yTicks.map((tick) => (
@@ -310,8 +402,9 @@ export function ExpensePaceChart({
 
           {series.points.map((point, index) => {
             const cx = chart.xAt(index);
-            const { y, height } = chart.barY(point.currentDaily);
             const isActive = activeIndex === index;
+            const totalH = chart.barHeight(point.currentDaily);
+            const segments = stackedSegments(point, colors, isActive);
             const hitWidth = Math.max(
               (WIDTH - PAD.left - PAD.right) / series.points.length,
               18
@@ -319,24 +412,53 @@ export function ExpensePaceChart({
             const hitY = PAD.top + chart.innerH * (1 - BAR_HEIGHT_RATIO) - 8;
             const hitH = chart.innerH * BAR_HEIGHT_RATIO + 16;
 
+            let yCursor = chart.baselineY;
+            const segmentRects = segments.map((segment) => {
+              const raw =
+                point.currentDaily > 0
+                  ? (segment.amount / point.currentDaily) * totalH
+                  : 0;
+              const height = Math.max(raw, segment.amount > 0 ? 1.5 : 0);
+              yCursor -= height;
+              return {
+                ...segment,
+                y: yCursor,
+                height,
+              };
+            });
+
             return (
               <g key={`bar-${point.day}`}>
-                {point.currentDaily > 0 || isActive ? (
+                {point.currentDaily > 0 ? (
+                  <g clipPath={`url(#${clipPrefix}-${point.day})`}>
+                    {segmentRects.map((segment) => (
+                      <rect
+                        key={segment.key}
+                        x={cx - chart.barWidth / 2}
+                        y={segment.y}
+                        width={chart.barWidth}
+                        height={segment.height}
+                        fill={segment.color}
+                        opacity={isActive ? 1 : 0.92}
+                      />
+                    ))}
+                  </g>
+                ) : isActive ? (
                   <rect
                     x={cx - chart.barWidth / 2}
-                    y={point.currentDaily > 0 ? y : chart.baselineY - 3}
+                    y={chart.baselineY - 3}
                     width={chart.barWidth}
-                    height={point.currentDaily > 0 ? height : 3}
+                    height={3}
                     rx={4}
-                    fill={isActive ? colors.barActive : colors.bar}
-                    opacity={isActive ? 1 : 0.88}
+                    fill={colors.cb}
+                    opacity={0.5}
                   />
                 ) : null}
-                {isActive ? (
+                {isActive && point.currentDaily > 0 ? (
                   <text
                     x={cx}
                     y={Math.max(
-                      (point.currentDaily > 0 ? y : chart.baselineY - 3) - 8,
+                      chart.baselineY - totalH - 8,
                       PAD.top + 10
                     )}
                     textAnchor="middle"
@@ -364,7 +486,7 @@ export function ExpensePaceChart({
                   }
                 >
                   <title>
-                    Jour {point.day} : {mask(formatEuro(point.currentDaily))}
+                    {`Jour ${point.day} : ${mask(formatEuro(point.currentDaily))} · CB ${mask(formatEuro(point.cbDaily))} · Swile ${mask(formatEuro(point.swileDaily))} · Cash ${mask(formatEuro(point.cashDaily))}`}
                   </title>
                 </rect>
               </g>
@@ -419,7 +541,7 @@ export function ExpensePaceChart({
                   }
                 >
                   <title>
-                    Jour {point.day} : {mask(formatEuro(point.currentDaily))}
+                    {`Jour ${point.day} : ${mask(formatEuro(point.currentDaily))}`}
                   </title>
                 </rect>
               </g>

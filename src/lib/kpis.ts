@@ -220,6 +220,10 @@ export type ExpensePacePoint = {
   day: number;
   /** Dépense du jour (mois sélectionné). */
   currentDaily: number;
+  /** Répartition du jour par moyen de paiement. */
+  cbDaily: number;
+  swileDaily: number;
+  cashDaily: number;
   currentCumulative: number;
   previousCumulative: number;
 };
@@ -234,10 +238,23 @@ export type ExpensePaceSeries = {
   previousLabel: string;
 };
 
+type DailyMethodTotals = {
+  total: number[];
+  cb: number[];
+  swile: number[];
+  cash: number[];
+};
+
 /** Totaux journaliers indexés 0 → day-1 pour un mois calendaire. */
-function dailyExpenseTotals(month: Date, expenses: Expense[]): number[] {
+function dailyExpenseTotalsByMethod(
+  month: Date,
+  expenses: Expense[]
+): DailyMethodTotals {
   const daysInMonth = endOfMonth(month).getDate();
-  const totals = Array.from({ length: daysInMonth }, () => 0);
+  const total = Array.from({ length: daysInMonth }, () => 0);
+  const cb = Array.from({ length: daysInMonth }, () => 0);
+  const swile = Array.from({ length: daysInMonth }, () => 0);
+  const cash = Array.from({ length: daysInMonth }, () => 0);
   const key = budgetMonthKey(month);
 
   for (const expense of expenses) {
@@ -245,10 +262,17 @@ function dailyExpenseTotals(month: Date, expenses: Expense[]): number[] {
     const zoned = toZonedTime(new Date(expense.created_at), APP_TIMEZONE);
     const day = zoned.getDate();
     if (day < 1 || day > daysInMonth) continue;
-    totals[day - 1] += Number(expense.amount);
+    const amount = Number(expense.amount);
+    if (!Number.isFinite(amount) || amount <= 0) continue;
+    const index = day - 1;
+    total[index] += amount;
+    const method = expense.payment_method ?? "cb";
+    if (method === "swile") swile[index] += amount;
+    else if (method === "cash") cash[index] += amount;
+    else cb[index] += amount;
   }
 
-  return totals;
+  return { total, cb, swile, cash };
 }
 
 /**
@@ -269,22 +293,26 @@ export function computeExpensePaceSeries(
     ? Math.min(Math.max(now.getDate(), 1), daysInSelected)
     : daysInSelected;
 
-  const currentDaily = dailyExpenseTotals(selected, currentExpenses);
-  const previousDaily = dailyExpenseTotals(previous, previousExpenses);
-  const previousDays = previousDaily.length;
+  const currentDaily = dailyExpenseTotalsByMethod(selected, currentExpenses);
+  const previousDaily = dailyExpenseTotalsByMethod(previous, previousExpenses);
+  const previousDays = previousDaily.total.length;
 
   const points: ExpensePacePoint[] = [];
   let currentSum = 0;
   let previousSum = 0;
 
   for (let day = 1; day <= endDay; day++) {
-    currentSum += currentDaily[day - 1] ?? 0;
+    const index = day - 1;
+    currentSum += currentDaily.total[index] ?? 0;
     if (day <= previousDays) {
-      previousSum += previousDaily[day - 1] ?? 0;
+      previousSum += previousDaily.total[index] ?? 0;
     }
     points.push({
       day,
-      currentDaily: currentDaily[day - 1] ?? 0,
+      currentDaily: currentDaily.total[index] ?? 0,
+      cbDaily: currentDaily.cb[index] ?? 0,
+      swileDaily: currentDaily.swile[index] ?? 0,
+      cashDaily: currentDaily.cash[index] ?? 0,
       currentCumulative: currentSum,
       previousCumulative: previousSum,
     });
