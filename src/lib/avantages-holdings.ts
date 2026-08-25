@@ -13,8 +13,8 @@ export const AVANTAGES_HOLDINGS = [
   {
     name: "Prime Noël Swile",
     asset_type: "Avantages" as const,
-    value: 25.71,
-    notes: "Swile · prime Christmas",
+    value: 0,
+    notes: "Swile · prime Christmas · épuisée (carte Airbnb)",
   },
   {
     name: "Prime culture HelloCSE",
