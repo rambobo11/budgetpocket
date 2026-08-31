@@ -44,7 +44,6 @@ export type SynthesisInput = {
 };
 
 const TOP_LINES = 40;
-const MAX_DETAIL_LINES = 100;
 
 function periodMonths(period: SynthesisPeriod): number {
   return Number(period);
@@ -164,10 +163,10 @@ function buildExpensesSection(
     );
   }
 
-  const sorted = [...expenses].sort(
+  const sortedByAmount = [...expenses].sort(
     (a, b) => Number(b.amount) - Number(a.amount)
   );
-  const top = sorted.slice(0, TOP_LINES);
+  const top = sortedByAmount.slice(0, TOP_LINES);
   if (top.length > 0) {
     lines.push("");
     lines.push(`### Top ${top.length} dépenses`);
@@ -184,12 +183,27 @@ function buildExpensesSection(
         ])
       )
     );
-    if (expenses.length > MAX_DETAIL_LINES) {
-      lines.push("");
-      lines.push(
-        `> ${expenses.length} dépenses au total — détail limité au top ${TOP_LINES} pour garder le contexte lisible.`
-      );
-    }
+  }
+
+  const sortedByDate = [...expenses].sort((a, b) =>
+    a.created_at.localeCompare(b.created_at)
+  );
+  if (sortedByDate.length > 0) {
+    lines.push("");
+    lines.push(`### Journal complet (${sortedByDate.length} lignes)`);
+    lines.push("");
+    lines.push(
+      mdTable(
+        ["Date", "Montant", "Catégorie", "Paiement", "Description"],
+        sortedByDate.map((e) => [
+          format(new Date(e.created_at), "yyyy-MM-dd"),
+          euro(Number(e.amount)),
+          e.category,
+          e.payment_method ?? "cb",
+          (e.description ?? "—").replace(/\|/g, "/"),
+        ])
+      )
+    );
   }
 
   lines.push("");

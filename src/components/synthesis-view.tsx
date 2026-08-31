@@ -1,10 +1,25 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { format, subMonths } from "date-fns";
-import { Check, Copy, Download, FileText, Loader2 } from "lucide-react";
+import {
+  addMonths,
+  format,
+  isSameMonth,
+  startOfMonth,
+  subMonths,
+} from "date-fns";
+import { fr } from "date-fns/locale";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  Download,
+  FileText,
+  Loader2,
+} from "lucide-react";
 import type { Asset, Credit, Expense, Income } from "@/lib/types";
-import { currentMonthStart } from "@/lib/date";
+import { currentMonthStart, nowInAppTz } from "@/lib/date";
 import { fetchAssets } from "@/lib/assets";
 import { fetchExpensesBetween } from "@/lib/expenses";
 import { fetchIncomesBetween, lastNMonths } from "@/lib/patrimoine-analytics";
@@ -26,7 +41,7 @@ type SynthesisViewProps = {
 };
 
 const PERIODS: { value: SynthesisPeriod; label: string }[] = [
-  { value: "1", label: "Mois courant" },
+  { value: "1", label: "1 mois" },
   { value: "3", label: "3 mois" },
   { value: "6", label: "6 mois" },
 ];
@@ -41,17 +56,26 @@ async function fetchCredits(): Promise<Credit[]> {
   return (data ?? []) as Credit[];
 }
 
+/** Défaut : mois précédent si on est en début de mois (≤ 3), sinon mois courant. */
+function defaultEndMonth(): Date {
+  const now = nowInAppTz();
+  if (now.getDate() <= 3) {
+    return startOfMonth(subMonths(now, 1));
+  }
+  return currentMonthStart();
+}
+
 export function SynthesisView({
   initialAssets,
   initialCredits,
 }: SynthesisViewProps) {
-  const [endMonth] = useState(() => currentMonthStart());
+  const [endMonth, setEndMonth] = useState(defaultEndMonth);
   const [period, setPeriod] = useState<SynthesisPeriod>("1");
   const [sections, setSections] = useState<SynthesisSections>({
     expenses: true,
-    incomes: true,
-    patrimoine: true,
-    credits: true,
+    incomes: false,
+    patrimoine: false,
+    credits: false,
   });
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
@@ -60,6 +84,9 @@ export function SynthesisView({
   const [isPending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const canGoNext = !isSameMonth(endMonth, nowInAppTz());
+  const monthLabel = format(endMonth, "MMMM yyyy", { locale: fr });
 
   useEffect(() => {
     const months = Number(period);
@@ -132,9 +159,17 @@ export function SynthesisView({
     label: string;
     hint: string;
   }[] = [
-    { key: "expenses", label: "Dépenses", hint: "Totaux, catégories, top lignes" },
+    {
+      key: "expenses",
+      label: "Dépenses",
+      hint: "Totaux, catégories, journal complet",
+    },
     { key: "incomes", label: "Revenus", hint: "Sources et évolution" },
-    { key: "patrimoine", label: "Patrimoine", hint: "Snapshot actifs / allocation" },
+    {
+      key: "patrimoine",
+      label: "Patrimoine",
+      hint: "Snapshot actifs / allocation",
+    },
     { key: "credits", label: "Crédits", hint: "Créances et crédits ouverts" },
   ];
 
@@ -142,11 +177,38 @@ export function SynthesisView({
     <PageShell>
       <AppHeader
         title={
-          <h1 className="text-xl font-semibold tracking-tight text-zinc-900 sm:text-2xl md:text-3xl dark:text-zinc-50">
-            Synthèse
-          </h1>
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() =>
+                setEndMonth((m) => startOfMonth(subMonths(m, 1)))
+              }
+              className="size-8 shrink-0 rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              aria-label="Mois précédent"
+            >
+              <ChevronLeft className="size-5" />
+            </Button>
+            <h1 className="min-w-0 truncate text-xl font-semibold tracking-tight text-zinc-900 capitalize sm:text-2xl md:text-3xl dark:text-zinc-50">
+              {monthLabel}
+            </h1>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={!canGoNext}
+              onClick={() =>
+                setEndMonth((m) => startOfMonth(addMonths(m, 1)))
+              }
+              className="size-8 shrink-0 rounded-full text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-30 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+              aria-label="Mois suivant"
+            >
+              <ChevronRight className="size-5" />
+            </Button>
+          </div>
         }
-        subtitle="Markdown prêt à coller dans une IA finance / investissement."
+        subtitle="Markdown prêt à coller dans une IA finance."
       />
 
       <AppNav />
@@ -156,7 +218,7 @@ export function SynthesisView({
       >
         <section className="rounded-[1.75rem] border border-zinc-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
           <p className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
-            Période
+            Fenêtre
           </p>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {PERIODS.map((item) => (
