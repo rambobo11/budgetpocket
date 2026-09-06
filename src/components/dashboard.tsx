@@ -15,12 +15,14 @@ import type { Expense } from "@/lib/types";
 import { APP_TIMEZONE, currentMonthStart, nowInAppTz } from "@/lib/date";
 import { fetchExpensesForMonth } from "@/lib/expenses";
 import { formatEuro } from "@/lib/format";
+import { QUERY_LOAD_ERROR } from "@/lib/supabase/query";
 import { AppHeader } from "@/components/app-header";
 import { usePrivacy } from "@/components/privacy-provider";
 import { QuickAddForm } from "@/components/quick-add-form";
 import { ExpenseList } from "@/components/expense-list";
 import { AppNav } from "@/components/app-nav";
 import { PageShell } from "@/components/page-shell";
+import { QueryErrorBanner } from "@/components/query-error-banner";
 import { Button } from "@/components/ui/button";
 
 type DashboardProps = {
@@ -31,18 +33,25 @@ export function Dashboard({ initialExpenses }: DashboardProps) {
   const [selectedMonth, setSelectedMonth] = useState(() => currentMonthStart());
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   const [isPending, startTransition] = useTransition();
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { mask } = usePrivacy();
 
   useEffect(() => {
     const now = currentMonthStart();
     if (isSameMonth(selectedMonth, now)) {
       setExpenses(initialExpenses);
+      setLoadError(null);
       return;
     }
 
     startTransition(async () => {
-      const data = await fetchExpensesForMonth(selectedMonth);
-      setExpenses(data);
+      setLoadError(null);
+      try {
+        const data = await fetchExpensesForMonth(selectedMonth);
+        setExpenses(data);
+      } catch {
+        setLoadError(QUERY_LOAD_ERROR);
+      }
     });
   }, [selectedMonth, initialExpenses]);
 
@@ -55,13 +64,11 @@ export function Dashboard({ initialExpenses }: DashboardProps) {
 
   function handleExpenseAdded(expense: Expense) {
     setExpenses((previous) =>
-      [expense, ...previous]
-        .sort((a, b) => {
-          const byTime = b.created_at.localeCompare(a.created_at);
-          if (byTime !== 0) return byTime;
-          return b.id.localeCompare(a.id);
-        })
-        .slice(0, 100)
+      [expense, ...previous].sort((a, b) => {
+        const byTime = b.created_at.localeCompare(a.created_at);
+        if (byTime !== 0) return byTime;
+        return b.id.localeCompare(a.id);
+      })
     );
   }
 
@@ -140,6 +147,8 @@ export function Dashboard({ initialExpenses }: DashboardProps) {
       />
 
       <AppNav />
+
+      <QueryErrorBanner className="mb-4" message={loadError} />
 
       <div
         className={`grid grid-cols-1 items-start gap-5 transition-opacity md:grid-cols-2 md:gap-8 ${isPending ? "opacity-60" : "opacity-100"}`}

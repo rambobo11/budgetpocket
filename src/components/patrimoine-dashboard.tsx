@@ -39,6 +39,8 @@ import { computeWealthKpis } from "@/lib/wealth-kpis";
 import { usePrivacy } from "@/components/privacy-provider";
 import { PrivacyToggle } from "@/components/privacy-toggle";
 import { Button } from "@/components/ui/button";
+import { QueryErrorBanner } from "@/components/query-error-banner";
+import { QUERY_LOAD_ERROR } from "@/lib/supabase/query";
 
 type PatrimoineDashboardProps = {
   assets: Asset[];
@@ -66,6 +68,7 @@ export function PatrimoineDashboard({
   const [expensesTotal, setExpensesTotal] = useState(0);
   const [runwayExpenses, setRunwayExpenses] = useState<Expense[]>([]);
   const [isPending, startTransition] = useTransition();
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     startTransition(async () => {
@@ -73,19 +76,25 @@ export function PatrimoineDashboard({
       const historyStart = subMonths(month, 5);
       const runwayStart = subMonths(month, 2);
 
-      const [current, previous, history, expenses, runway] = await Promise.all([
-        fetchIncomesForMonth(month),
-        fetchIncomesForMonth(previousMonth),
-        fetchIncomesBetween(historyStart, month),
-        fetchExpensesForMonth(month),
-        fetchExpensesBetween(runwayStart, month),
-      ]);
+      setLoadError(null);
+      try {
+        const [current, previous, history, expenses, runway] =
+          await Promise.all([
+            fetchIncomesForMonth(month),
+            fetchIncomesForMonth(previousMonth),
+            fetchIncomesBetween(historyStart, month),
+            fetchExpensesForMonth(month),
+            fetchExpensesBetween(runwayStart, month),
+          ]);
 
-      setCurrentIncomes(current);
-      setPreviousIncomes(previous);
-      setHistoryIncomes(history);
-      setExpensesTotal(sumSalaryExpenses(expenses));
-      setRunwayExpenses(runway);
+        setCurrentIncomes(current);
+        setPreviousIncomes(previous);
+        setHistoryIncomes(history);
+        setExpensesTotal(sumSalaryExpenses(expenses));
+        setRunwayExpenses(runway);
+      } catch {
+        setLoadError(QUERY_LOAD_ERROR);
+      }
     });
   }, [month]);
 
@@ -121,6 +130,7 @@ export function PatrimoineDashboard({
     <section
       className={`mb-8 space-y-5 transition-opacity md:mb-10 md:space-y-6 ${isPending ? "opacity-70" : "opacity-100"}`}
     >
+      <QueryErrorBanner message={loadError} />
       <div className="rounded-[1.75rem] border border-zinc-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900 sm:p-7">
         <div className="flex items-start justify-between gap-3">
           <div>

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { unwrapList } from "@/lib/supabase/query";
 import { formatEuro, formatMad } from "@/lib/format";
 import type { Asset, AssetCurrency, AssetType } from "@/lib/types";
 
@@ -31,12 +32,12 @@ export function isLiveCryptoAsset(asset: Pick<Asset, "asset_type" | "coingecko_i
 export async function fetchAssets(): Promise<Asset[]> {
   const supabase = createClient();
 
-  const { data } = await supabase
+  const result = await supabase
     .from("assets")
     .select("*")
     .order("value_eur", { ascending: false });
 
-  return (data ?? []) as Asset[];
+  return unwrapList(result, "Impossible de charger le patrimoine.");
 }
 
 /** Types exclus du patrimoine net (soldes CSE / primes à part). */

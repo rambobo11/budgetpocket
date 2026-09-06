@@ -6,6 +6,7 @@ import {
 } from "date-fns";
 import { fr } from "date-fns/locale";
 import { createClient } from "@/lib/supabase/client";
+import { unwrapList } from "@/lib/supabase/query";
 import { currentMonthStart } from "@/lib/date";
 import { budgetMonthKey } from "@/lib/incomes";
 import type { Income, IncomeSource } from "@/lib/types";
@@ -108,7 +109,7 @@ export async function fetchIncomesBetween(
   const fromKey = budgetMonthKey(fromMonth);
   const toKey = budgetMonthKey(toMonth);
 
-  const { data } = await supabase
+  const result = await supabase
     .from("incomes")
     .select("*")
     .gte("budget_month", fromKey)
@@ -116,7 +117,7 @@ export async function fetchIncomesBetween(
     .order("budget_month", { ascending: true })
     .limit(1000);
 
-  return (data ?? []) as Income[];
+  return unwrapList(result, "Impossible de charger les revenus.");
 }
 
 export function buildIncomeHistory(

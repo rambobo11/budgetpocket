@@ -40,6 +40,8 @@ import { CashflowSankey } from "@/components/cashflow-sankey";
 import { CategoryBreakdownSection } from "@/components/category-breakdown";
 import { ExpensePaceChart } from "@/components/expense-pace-chart";
 import { Button } from "@/components/ui/button";
+import { QueryErrorBanner } from "@/components/query-error-banner";
+import { QUERY_LOAD_ERROR } from "@/lib/supabase/query";
 
 type StatsDashboardProps = {
   initialExpenses: Expense[];
@@ -61,6 +63,7 @@ export function StatsDashboard({
     useState<Expense[]>(initialExpenses);
   const [previousExpenses, setPreviousExpenses] = useState<Expense[]>([]);
   const [isPending, startTransition] = useTransition();
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { mask } = usePrivacy();
 
   useEffect(() => {
@@ -69,24 +72,29 @@ export function StatsDashboard({
     const previousMonth = subMonths(selectedMonth, 1);
 
     startTransition(async () => {
-      if (isSameMonth(selectedMonth, initial)) {
-        setExpenses(initialExpenses);
-        setIncomes(initialIncomes);
-      } else {
-        const [monthExpenses, monthIncomes] = await Promise.all([
-          fetchExpensesForMonth(selectedMonth),
-          fetchIncomesForMonth(selectedMonth),
-        ]);
-        setExpenses(monthExpenses);
-        setIncomes(monthIncomes);
-      }
+      setLoadError(null);
+      try {
+        if (isSameMonth(selectedMonth, initial)) {
+          setExpenses(initialExpenses);
+          setIncomes(initialIncomes);
+        } else {
+          const [monthExpenses, monthIncomes] = await Promise.all([
+            fetchExpensesForMonth(selectedMonth),
+            fetchIncomesForMonth(selectedMonth),
+          ]);
+          setExpenses(monthExpenses);
+          setIncomes(monthIncomes);
+        }
 
-      const [history, previous] = await Promise.all([
-        fetchExpensesBetween(historyStart, selectedMonth),
-        fetchExpensesForMonth(previousMonth),
-      ]);
-      setHistoryExpenses(history);
-      setPreviousExpenses(previous);
+        const [history, previous] = await Promise.all([
+          fetchExpensesBetween(historyStart, selectedMonth),
+          fetchExpensesForMonth(previousMonth),
+        ]);
+        setHistoryExpenses(history);
+        setPreviousExpenses(previous);
+      } catch {
+        setLoadError(QUERY_LOAD_ERROR);
+      }
     });
   }, [selectedMonth, initialExpenses, initialIncomes, initialMonthIso]);
 
@@ -139,6 +147,8 @@ export function StatsDashboard({
       />
 
       <AppNav />
+
+      <QueryErrorBanner className="mb-4" message={loadError} />
 
       <div
         className={`flex flex-col gap-4 transition-opacity md:gap-6 ${isPending ? "opacity-60" : "opacity-100"}`}

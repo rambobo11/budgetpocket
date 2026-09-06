@@ -39,6 +39,24 @@ export type CryptoPortfolioKpis = {
 
 const STABLE_IDS = new Set(["usd-coin", "tether"]);
 
+/** CoinGecko id pour convertir USD / USDT / USDC → EUR (tether n’est pas allowlisté). */
+export const USD_EUR_FX_COINGECKO_ID = "usd-coin";
+
+/** Fallback si le prix USDC/EUR n’est pas encore chargé. */
+export const USD_TO_EUR_FALLBACK = 0.92;
+
+export function isUsdQuoted(quote: CryptoQuoteCurrency | null): boolean {
+  return quote === "USD" || quote === "USDT" || quote === "USDC";
+}
+
+export function usdToEurRate(livePricesEur?: Record<string, number>): number {
+  const live = livePricesEur?.[USD_EUR_FX_COINGECKO_ID];
+  if (typeof live === "number" && Number.isFinite(live) && live > 0) {
+    return live;
+  }
+  return USD_TO_EUR_FALLBACK;
+}
+
 export function tradeNotionalQuote(trade: CryptoTrade): number {
   return (
     Number(trade.quantity) * Number(trade.price_quote) + Number(trade.fee_quote)
@@ -47,7 +65,8 @@ export function tradeNotionalQuote(trade: CryptoTrade): number {
 
 /** Coût moyen restant (FIFO) par coin à partir des trades. */
 export function averageCostByCoin(
-  trades: CryptoTrade[]
+  trades: CryptoTrade[],
+  livePricesEur: Record<string, number> = {}
 ): Map<
   string,
   { avgPriceQuote: number; quoteCurrency: CryptoQuoteCurrency; costPerUnitEur: number }
@@ -114,12 +133,19 @@ export function averageCostByCoin(
       (sum, lot) => sum + lot.quantity * lot.priceQuote,
       0
     );
+    const costEur = lots.reduce(
+      (sum, lot) =>
+        sum +
+        lot.quantity *
+          quoteToEurApprox(lot.priceQuote, lot.quoteCurrency, livePricesEur),
+      0
+    );
     const quoteCurrency = lots[0]!.quoteCurrency;
     const avgPriceQuote = costQuote / quantity;
     result.set(coingeckoId, {
       avgPriceQuote,
       quoteCurrency,
-      costPerUnitEur: quoteToEurApprox(avgPriceQuote, quoteCurrency),
+      costPerUnitEur: costEur / quantity,
     });
   }
 
@@ -135,7 +161,7 @@ export function computeCryptoPositionsFromHoldings(
   trades: CryptoTrade[],
   livePricesEur: Record<string, number>
 ): CryptoPosition[] {
-  const costs = averageCostByCoin(trades);
+  const costs = averageCostByCoin(trades, livePricesEur);
   const merged = new Map<string, number>();
 
   for (const holding of holdings) {
@@ -212,7 +238,7 @@ export function computeCryptoPositions(
   trades: CryptoTrade[],
   livePricesEur: Record<string, number>
 ): CryptoPosition[] {
-  const costs = averageCostByCoin(trades);
+  const costs = averageCostByCoin(trades, livePricesEur);
   const holdings: CryptoHoldingInput[] = [];
   // Rebuild qty from FIFO leftover via costs + re-run lots — use trade-only path
   const byCoin = new Map<string, CryptoTrade[]>();
@@ -278,9 +304,13 @@ export function computeCryptoPortfolioKpis(
 
 export function quoteToEurApprox(
   amount: number,
-  quote: CryptoQuoteCurrency | null
+  quote: CryptoQuoteCurrency | null,
+  livePricesEur?: Record<string, number>
 ): number {
   if (quote == null || quote === "EUR") return amount;
+  if (isUsdQuoted(quote)) {
+    return amount * usdToEurRate(livePricesEur);
+  }
   return amount;
 }
 

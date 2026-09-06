@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { unwrapList } from "@/lib/supabase/query";
 import { monthIsoBounds } from "@/lib/date";
 import type { Expense } from "@/lib/types";
 
@@ -8,7 +9,7 @@ export async function fetchExpensesForMonth(month: Date): Promise<Expense[]> {
   const supabase = createClient();
   const { start, end } = monthIsoBounds(month);
 
-  const { data } = await supabase
+  const result = await supabase
     .from("expenses")
     .select("*")
     .gte("created_at", start)
@@ -16,7 +17,7 @@ export async function fetchExpensesForMonth(month: Date): Promise<Expense[]> {
     .order("created_at", { ascending: false })
     .limit(500);
 
-  return (data ?? []) as Expense[];
+  return unwrapList(result, "Impossible de charger les dépenses.");
 }
 
 /** Dépenses entre le début de `fromMonth` et la fin de `toMonth` (inclus). */
@@ -28,7 +29,7 @@ export async function fetchExpensesBetween(
   const { start } = monthIsoBounds(fromMonth);
   const { end } = monthIsoBounds(toMonth);
 
-  const { data } = await supabase
+  const result = await supabase
     .from("expenses")
     .select("*")
     .gte("created_at", start)
@@ -36,5 +37,5 @@ export async function fetchExpensesBetween(
     .order("created_at", { ascending: false })
     .limit(3000);
 
-  return (data ?? []) as Expense[];
+  return unwrapList(result, "Impossible de charger les dépenses.");
 }

@@ -7,6 +7,7 @@ import {
 } from "date-fns";
 import { fr } from "date-fns/locale";
 import { createClient } from "@/lib/supabase/client";
+import { unwrapList } from "@/lib/supabase/query";
 import type { Income, IncomeSource } from "@/lib/types";
 
 export function budgetMonthKey(month: Date): string {
@@ -65,12 +66,12 @@ export async function fetchIncomesForMonth(month: Date): Promise<Income[]> {
   const supabase = createClient();
   const key = budgetMonthKey(month);
 
-  const { data } = await supabase
+  const result = await supabase
     .from("incomes")
     .select("*")
     .eq("budget_month", key)
     .order("created_at", { ascending: false })
     .limit(200);
 
-  return (data ?? []) as Income[];
+  return unwrapList(result, "Impossible de charger les revenus.");
 }

@@ -19,6 +19,8 @@ import { PageShell } from "@/components/page-shell";
 import { IncomeForm } from "@/components/income-form";
 import { IncomeList } from "@/components/income-list";
 import { Button } from "@/components/ui/button";
+import { QueryErrorBanner } from "@/components/query-error-banner";
+import { QUERY_LOAD_ERROR } from "@/lib/supabase/query";
 
 type IncomesViewProps = {
   initialIncomes: Income[];
@@ -28,17 +30,24 @@ export function IncomesView({ initialIncomes }: IncomesViewProps) {
   const [selectedMonth, setSelectedMonth] = useState(() => currentMonthStart());
   const [incomes, setIncomes] = useState<Income[]>(initialIncomes);
   const [isPending, startTransition] = useTransition();
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const now = currentMonthStart();
     if (isSameMonth(selectedMonth, now)) {
       setIncomes(initialIncomes);
+      setLoadError(null);
       return;
     }
 
     startTransition(async () => {
-      const data = await fetchIncomesForMonth(selectedMonth);
-      setIncomes(data);
+      setLoadError(null);
+      try {
+        const data = await fetchIncomesForMonth(selectedMonth);
+        setIncomes(data);
+      } catch {
+        setLoadError(QUERY_LOAD_ERROR);
+      }
     });
   }, [selectedMonth, initialIncomes]);
 
@@ -108,6 +117,8 @@ export function IncomesView({ initialIncomes }: IncomesViewProps) {
       />
 
       <AppNav />
+
+      <QueryErrorBanner className="mb-4" message={loadError} />
 
       <div
         className={`grid min-w-0 grid-cols-1 items-start gap-5 transition-opacity md:grid-cols-2 md:gap-8 ${isPending ? "opacity-60" : "opacity-100"}`}

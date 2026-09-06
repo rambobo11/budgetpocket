@@ -31,7 +31,9 @@ import {
   computeCryptoPositions,
   computeCryptoPositionsFromHoldings,
   formatQuotePrice,
+  isUsdQuoted,
   tradeNotionalQuote,
+  USD_EUR_FX_COINGECKO_ID,
   type CryptoHoldingInput,
 } from "@/lib/crypto-trades";
 import { formatEuro } from "@/lib/format";
@@ -76,7 +78,10 @@ export function CryptoView({ initialTrades, initialAssets }: CryptoViewProps) {
   const coinIds = useMemo(() => {
     const ids = new Set<string>();
     for (const holding of holdings) ids.add(holding.coingeckoId);
-    for (const trade of trades) ids.add(trade.coingecko_id);
+    for (const trade of trades) {
+      ids.add(trade.coingecko_id);
+      if (isUsdQuoted(trade.quote_currency)) ids.add(USD_EUR_FX_COINGECKO_ID);
+    }
     return [...ids];
   }, [holdings, trades]);
 

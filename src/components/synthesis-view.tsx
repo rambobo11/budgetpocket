@@ -30,9 +30,11 @@ import {
   type SynthesisSections,
 } from "@/lib/synthesis";
 import { createClient } from "@/lib/supabase/client";
+import { unwrapList } from "@/lib/supabase/query";
 import { AppHeader } from "@/components/app-header";
 import { AppNav } from "@/components/app-nav";
 import { PageShell } from "@/components/page-shell";
+import { QueryErrorBanner } from "@/components/query-error-banner";
 import { Button } from "@/components/ui/button";
 
 type SynthesisViewProps = {
@@ -48,12 +50,12 @@ const PERIODS: { value: SynthesisPeriod; label: string }[] = [
 
 async function fetchCredits(): Promise<Credit[]> {
   const supabase = createClient();
-  const { data } = await supabase
+  const result = await supabase
     .from("credits")
     .select("*")
     .order("status", { ascending: true })
     .order("created_at", { ascending: false });
-  return (data ?? []) as Credit[];
+  return unwrapList(result, "Impossible de charger les crédits.");
 }
 
 /** Défaut : mois précédent si on est en début de mois (≤ 3), sinon mois courant. */
@@ -263,11 +265,7 @@ export function SynthesisView({
             ))}
           </ul>
 
-          {loadError ? (
-            <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400">
-              {loadError}
-            </p>
-          ) : null}
+          <QueryErrorBanner className="mt-4" message={loadError} />
 
           <div className="mt-5 flex flex-wrap gap-2">
             <Button
