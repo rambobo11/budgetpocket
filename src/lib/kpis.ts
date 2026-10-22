@@ -285,10 +285,10 @@ function dailyExpenseTotalsByMethod(
   return { total, cb, swile, cash };
 }
 
-const PACE_PAST_MONTHS = 5;
+const PACE_PAST_MONTHS = 2;
 
 /**
- * Cumul jour par jour du mois sélectionné vs les mois passés (même jour).
+ * Cumul jour par jour du mois sélectionné vs les 2 mois précédents (même jour).
  * Mois courant : tronqué à aujourd’hui (Europe/Paris).
  */
 export function computeExpensePaceSeries(

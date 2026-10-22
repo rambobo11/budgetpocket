@@ -18,7 +18,7 @@ type ExpensePaceChartProps = {
   historyExpenses: Expense[];
 };
 
-const COMPARISON_DASH = ["5 4", "2 3", "8 3 2 3", "1 4", "6 2 2 2"] as const;
+const COMPARISON_DASH = ["5 4", "2 3"] as const;
 
 const WIDTH = 680;
 const HEIGHT = 248;
@@ -37,7 +37,7 @@ const CHART_COLORS = {
     barLabel: "#115e59",
     line: "#18181b",
     previous: "#78716c",
-    comparisons: ["#78716c", "#64748b", "#a16207", "#6b7280", "#57534e"],
+    comparisons: ["#78716c", "#64748b"],
     area: "#0d9488",
     grid: "#d4d4d8",
     axis: "#52525b",
@@ -53,7 +53,7 @@ const CHART_COLORS = {
     barLabel: "#99f6e4",
     line: "#fafafa",
     previous: "#d6d3d1",
-    comparisons: ["#d6d3d1", "#94a3b8", "#d6b35c", "#a1a1aa", "#a8a29e"],
+    comparisons: ["#d6d3d1", "#94a3b8"],
     area: "#2dd4bf",
     grid: "#52525b",
     axis: "#a1a1aa",
@@ -214,7 +214,7 @@ export function ExpensePaceChart({
           Rythme du mois
         </p>
         <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-          Cumul + dépense du jour vs mois passés
+          Cumul + dépense du jour vs 2 mois précédents
         </p>
         <p className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
           Aucune dépense sur ce mois ni le précédent.
@@ -386,7 +386,7 @@ export function ExpensePaceChart({
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           className="h-auto w-full min-w-[300px] cursor-crosshair"
           role="img"
-          aria-label="Dépenses journalières CB Swile Cash et cumul du mois versus mois passés"
+          aria-label="Dépenses journalières CB Swile Cash et cumul du mois versus les deux mois précédents"
           onMouseLeave={() => setHoverIndex(null)}
         >
           <defs>
