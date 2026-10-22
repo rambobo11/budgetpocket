@@ -15,8 +15,10 @@ import { usePrivacy } from "@/components/privacy-provider";
 type ExpensePaceChartProps = {
   month: Date;
   expenses: Expense[];
-  previousExpenses: Expense[];
+  historyExpenses: Expense[];
 };
+
+const COMPARISON_DASH = ["5 4", "2 3", "8 3 2 3", "1 4", "6 2 2 2"] as const;
 
 const WIDTH = 680;
 const HEIGHT = 248;
@@ -35,6 +37,7 @@ const CHART_COLORS = {
     barLabel: "#115e59",
     line: "#18181b",
     previous: "#78716c",
+    comparisons: ["#78716c", "#64748b", "#a16207", "#6b7280", "#57534e"],
     area: "#0d9488",
     grid: "#d4d4d8",
     axis: "#52525b",
@@ -50,6 +53,7 @@ const CHART_COLORS = {
     barLabel: "#99f6e4",
     line: "#fafafa",
     previous: "#d6d3d1",
+    comparisons: ["#d6d3d1", "#94a3b8", "#d6b35c", "#a1a1aa", "#a8a29e"],
     area: "#2dd4bf",
     grid: "#52525b",
     axis: "#a1a1aa",
@@ -116,7 +120,7 @@ function stackedSegments(
 export function ExpensePaceChart({
   month,
   expenses,
-  previousExpenses,
+  historyExpenses,
 }: ExpensePaceChartProps) {
   const { mask } = usePrivacy();
   const { resolvedTheme } = useTheme();
@@ -128,8 +132,8 @@ export function ExpensePaceChart({
   const [pinnedIndex, setPinnedIndex] = useState<number | null>(null);
 
   const series = useMemo(
-    () => computeExpensePaceSeries(month, expenses, previousExpenses),
-    [month, expenses, previousExpenses]
+    () => computeExpensePaceSeries(month, expenses, historyExpenses),
+    [month, expenses, historyExpenses]
   );
 
   const chart = useMemo(() => {
@@ -137,9 +141,10 @@ export function ExpensePaceChart({
     const innerW = WIDTH - PAD.left - PAD.right;
     const innerH = HEIGHT - PAD.top - PAD.bottom;
     const maxCumulative = Math.max(
-      ...points.map((p) =>
-        Math.max(p.currentCumulative, p.previousCumulative)
-      ),
+      ...points.flatMap((p) => [
+        p.currentCumulative,
+        ...p.comparisonCumulatives,
+      ]),
       1
     );
     const maxDaily = Math.max(...points.map((p) => p.currentDaily), 1);
@@ -158,7 +163,13 @@ export function ExpensePaceChart({
     const baselineY = PAD.top + innerH;
 
     const currentValues = points.map((p) => p.currentCumulative);
-    const previousValues = points.map((p) => p.previousCumulative);
+    const comparisonPaths = series.comparisonMonths.map((_, monthIndex) =>
+      buildPath(
+        points.map((p) => p.comparisonCumulatives[monthIndex] ?? 0),
+        xAt,
+        yAt
+      )
+    );
 
     const yTicks = [0, 0.5, 1].map((ratio) => ({
       value: maxCumulative * ratio,
@@ -181,7 +192,7 @@ export function ExpensePaceChart({
       innerH,
       maxDaily,
       currentPath: buildPath(currentValues, xAt, yAt),
-      previousPath: buildPath(previousValues, xAt, yAt),
+      comparisonPaths,
       areaPath: buildArea(currentValues, xAt, yAt, baselineY),
       yTicks,
       xLabelIndexes,
@@ -203,7 +214,7 @@ export function ExpensePaceChart({
           Rythme du mois
         </p>
         <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-          Cumul + dépense du jour vs mois précédent
+          Cumul + dépense du jour vs mois passés
         </p>
         <p className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
           Aucune dépense sur ce mois ni le précédent.
@@ -220,7 +231,9 @@ export function ExpensePaceChart({
             Rythme du mois
           </p>
           <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-            Survole ou clique une barre · vs {series.previousLabel}
+            Survole ou clique une barre · vs {series.comparisonMonths
+              .map((item) => item.shortLabel)
+              .join(" · ") || series.previousLabel}
           </p>
         </div>
         <span
@@ -268,16 +281,18 @@ export function ExpensePaceChart({
           />
           Cumul
         </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span
-            className="inline-block w-4"
-            style={{
-              height: 2,
-              backgroundImage: `repeating-linear-gradient(90deg, ${colors.previous} 0 3px, transparent 3px 6px)`,
-            }}
-          />
-          Mois précédent
-        </span>
+        {series.comparisonMonths.map((item, index) => (
+          <span key={item.key} className="inline-flex items-center gap-1.5">
+            <span
+              className="inline-block w-4"
+              style={{
+                height: 2,
+                backgroundImage: `repeating-linear-gradient(90deg, ${colors.comparisons[index] ?? colors.previous} 0 3px, transparent 3px 6px)`,
+              }}
+            />
+            {item.shortLabel}
+          </span>
+        ))}
       </div>
 
       {active ? (
@@ -333,14 +348,36 @@ export function ExpensePaceChart({
               </span>
             ) : null}
           </div>
-          <p
-            className="mt-1 text-xs tabular-nums"
+          <div
+            className="mt-1 space-y-0.5 text-xs tabular-nums"
             style={{ color: isDark ? "#a1a1aa" : "#52525b" }}
           >
-            cumul {mask(formatEuro(active.currentCumulative))}
-            {" · "}
-            préc. {mask(formatEuro(active.previousCumulative))}
-          </p>
+            <p>cumul {mask(formatEuro(active.currentCumulative))}</p>
+            {series.comparisonMonths.map((item, index) => {
+              const past = active.comparisonCumulatives[index] ?? 0;
+              const delta = active.currentCumulative - past;
+              const under = delta <= 0;
+              return (
+                <p key={item.key}>
+                  {item.shortLabel} {mask(formatEuro(past))}
+                  {" · "}
+                  <span
+                    style={{
+                      color: under
+                        ? isDark
+                          ? "#34d399"
+                          : "#047857"
+                        : isDark
+                          ? "#fb7185"
+                          : "#be123c",
+                    }}
+                  >
+                    {mask(formatSignedEuro(delta))}
+                  </span>
+                </p>
+              );
+            })}
+          </div>
         </div>
       ) : null}
 
@@ -349,7 +386,7 @@ export function ExpensePaceChart({
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           className="h-auto w-full min-w-[300px] cursor-crosshair"
           role="img"
-          aria-label="Dépenses journalières CB Swile Cash et cumul du mois versus mois précédent"
+          aria-label="Dépenses journalières CB Swile Cash et cumul du mois versus mois passés"
           onMouseLeave={() => setHoverIndex(null)}
         >
           <defs>
@@ -494,15 +531,19 @@ export function ExpensePaceChart({
           })}
 
           <path d={chart.areaPath} fill={`url(#${gradientId})`} />
-          <path
-            d={chart.previousPath}
-            fill="none"
-            stroke={colors.previous}
-            strokeWidth={2.25}
-            strokeDasharray="5 4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          {chart.comparisonPaths.map((path, index) => (
+            <path
+              key={series.comparisonMonths[index]?.key ?? `cmp-${index}`}
+              d={path}
+              fill="none"
+              stroke={colors.comparisons[index] ?? colors.previous}
+              strokeWidth={index === 0 ? 2.25 : 1.75}
+              strokeDasharray={COMPARISON_DASH[index] ?? "4 4"}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={index === 0 ? 0.95 : 0.75}
+            />
+          ))}
           <path
             d={chart.currentPath}
             fill="none"

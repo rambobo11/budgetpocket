@@ -27,6 +27,7 @@ import {
   computeExpenseHistory,
   computeExpenseInsights,
   computeMonthKpis,
+  expenseMonthKey,
   formatEuro,
   formatSignedEuro,
   formatSignedPercent,
@@ -86,12 +87,20 @@ export function StatsDashboard({
           setIncomes(monthIncomes);
         }
 
-        const [history, previous] = await Promise.all([
-          fetchExpensesBetween(historyStart, selectedMonth),
-          fetchExpensesForMonth(previousMonth),
-        ]);
+        const history = await fetchExpensesBetween(
+          historyStart,
+          selectedMonth
+        );
         setHistoryExpenses(history);
-        setPreviousExpenses(previous);
+        const previousKey = format(
+          startOfMonth(previousMonth),
+          "yyyy-MM-dd"
+        );
+        setPreviousExpenses(
+          history.filter(
+            (expense) => expenseMonthKey(expense.created_at) === previousKey
+          )
+        );
       } catch {
         setLoadError(QUERY_LOAD_ERROR);
       }
@@ -277,7 +286,7 @@ export function StatsDashboard({
         <ExpensePaceChart
           month={selectedMonth}
           expenses={expenses}
-          previousExpenses={previousExpenses}
+          historyExpenses={historyExpenses}
         />
 
         <CashflowSankey incomes={incomes} expenses={expenses} />

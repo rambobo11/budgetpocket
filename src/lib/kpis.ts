@@ -225,7 +225,16 @@ export type ExpensePacePoint = {
   swileDaily: number;
   cashDaily: number;
   currentCumulative: number;
+  /** Cumul du mois précédent (même jour). */
   previousCumulative: number;
+  /** Cumuls des mois passés, même index que `comparisonMonths`. */
+  comparisonCumulatives: number[];
+};
+
+export type ExpensePaceComparisonMonth = {
+  key: string;
+  label: string;
+  shortLabel: string;
 };
 
 export type ExpensePaceSeries = {
@@ -236,6 +245,7 @@ export type ExpensePaceSeries = {
   isEmpty: boolean;
   currentLabel: string;
   previousLabel: string;
+  comparisonMonths: ExpensePaceComparisonMonth[];
 };
 
 type DailyMethodTotals = {
@@ -275,14 +285,17 @@ function dailyExpenseTotalsByMethod(
   return { total, cb, swile, cash };
 }
 
+const PACE_PAST_MONTHS = 5;
+
 /**
- * Cumul jour par jour du mois sélectionné vs même jour du mois précédent.
+ * Cumul jour par jour du mois sélectionné vs les mois passés (même jour).
  * Mois courant : tronqué à aujourd’hui (Europe/Paris).
  */
 export function computeExpensePaceSeries(
   month: Date,
   currentExpenses: Expense[],
-  previousExpenses: Expense[]
+  historyExpenses: Expense[],
+  pastMonthCount = PACE_PAST_MONTHS
 ): ExpensePaceSeries {
   const selected = startOfMonth(month);
   const previous = startOfMonth(subMonths(selected, 1));
@@ -294,19 +307,35 @@ export function computeExpensePaceSeries(
     : daysInSelected;
 
   const currentDaily = dailyExpenseTotalsByMethod(selected, currentExpenses);
-  const previousDaily = dailyExpenseTotalsByMethod(previous, previousExpenses);
-  const previousDays = previousDaily.total.length;
+
+  const pastMonths = lastNMonths(pastMonthCount + 1, selected)
+    .slice(0, -1)
+    .reverse();
+
+  const comparisonMonths: ExpensePaceComparisonMonth[] = pastMonths.map(
+    (past) => ({
+      key: budgetMonthKey(past),
+      label: format(past, "MMMM yyyy", { locale: fr }),
+      shortLabel: format(past, "MMM", { locale: fr }),
+    })
+  );
+
+  const comparisonDailies = pastMonths.map((past) =>
+    dailyExpenseTotalsByMethod(past, historyExpenses)
+  );
 
   const points: ExpensePacePoint[] = [];
   let currentSum = 0;
-  let previousSum = 0;
+  const comparisonSums = comparisonDailies.map(() => 0);
 
   for (let day = 1; day <= endDay; day++) {
     const index = day - 1;
     currentSum += currentDaily.total[index] ?? 0;
-    if (day <= previousDays) {
-      previousSum += previousDaily.total[index] ?? 0;
-    }
+    comparisonDailies.forEach((daily, monthIndex) => {
+      if (day <= daily.total.length) {
+        comparisonSums[monthIndex] += daily.total[index] ?? 0;
+      }
+    });
     points.push({
       day,
       currentDaily: currentDaily.total[index] ?? 0,
@@ -314,21 +343,45 @@ export function computeExpensePaceSeries(
       swileDaily: currentDaily.swile[index] ?? 0,
       cashDaily: currentDaily.cash[index] ?? 0,
       currentCumulative: currentSum,
-      previousCumulative: previousSum,
+      previousCumulative: comparisonSums[0] ?? 0,
+      comparisonCumulatives: [...comparisonSums],
     });
   }
 
-  const currentAtDate = points.at(-1)?.currentCumulative ?? 0;
-  const previousAtDate = points.at(-1)?.previousCumulative ?? 0;
-  const isEmpty = currentAtDate === 0 && previousAtDate === 0;
+  const activeIndexes = comparisonMonths
+    .map((_, index) => index)
+    .filter((index) =>
+      points.some((point) => (point.comparisonCumulatives[index] ?? 0) > 0)
+    );
+
+  const visibleMonths = activeIndexes.map((index) => comparisonMonths[index]);
+  const visiblePoints = points.map((point) => ({
+    ...point,
+    comparisonCumulatives: activeIndexes.map(
+      (index) => point.comparisonCumulatives[index] ?? 0
+    ),
+    previousCumulative:
+      activeIndexes.length > 0
+        ? (point.comparisonCumulatives[activeIndexes[0]] ?? 0)
+        : 0,
+  }));
+
+  const currentAtDate = visiblePoints.at(-1)?.currentCumulative ?? 0;
+  const previousAtDate = visiblePoints.at(-1)?.previousCumulative ?? 0;
+  const isEmpty =
+    currentAtDate === 0 &&
+    (visiblePoints
+      .at(-1)
+      ?.comparisonCumulatives.every((value) => value === 0) ?? true);
 
   return {
-    points,
+    points: visiblePoints,
     currentAtDate,
     previousAtDate,
     deltaAtDate: currentAtDate - previousAtDate,
     isEmpty,
     currentLabel: format(selected, "MMMM yyyy", { locale: fr }),
     previousLabel: format(previous, "MMMM yyyy", { locale: fr }),
+    comparisonMonths: visibleMonths,
   };
 }
