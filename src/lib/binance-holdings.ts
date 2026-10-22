@@ -9,13 +9,14 @@ export type BinanceHolding = {
 
 /**
  * Holdings Binance (snapshot) — serveur uniquement.
- * Qté + coût moyen issus de l’Asset View Binance (août 2026).
+ * Qté + coût moyen : Asset View Binance (août 2026)
+ * + achat BTC/USDC 0,00084 @ 83 000 le 7 oct 2026 (69,72 USDC).
  */
 export const BINANCE_HOLDINGS: BinanceHolding[] = [
   { coingeckoId: "solana", quantity: 4.52456548, avgCostUsdt: 176.42 },
-  { coingeckoId: "usd-coin", quantity: 400.27585839, avgCostUsdt: null },
+  { coingeckoId: "usd-coin", quantity: 330.69, avgCostUsdt: null },
   { coingeckoId: "aave", quantity: 0.39637185, avgCostUsdt: 204.8 },
-  { coingeckoId: "bitcoin", quantity: 0.00061938, avgCostUsdt: 64108 },
+  { coingeckoId: "bitcoin", quantity: 0.00145938, avgCostUsdt: 74981.85 },
   { coingeckoId: "cardano", quantity: 187.27336843, avgCostUsdt: 1.97 },
   {
     coingeckoId: "internet-computer",
