@@ -12,7 +12,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { fr } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { CategoryLimit, Expense } from "@/lib/types";
-import { APP_TIMEZONE, currentMonthStart, nowInAppTz } from "@/lib/date";
+import { APP_TIMEZONE, canGoToNextMonth, currentMonthStart } from "@/lib/date";
 import { fetchExpensesForMonth } from "@/lib/expenses";
 import { formatEuro } from "@/lib/format";
 import { QUERY_LOAD_ERROR } from "@/lib/supabase/query";
@@ -64,7 +64,7 @@ export function Dashboard({
   }, [selectedMonth, initialExpenses]);
 
   const monthLabel = format(selectedMonth, "MMMM yyyy", { locale: fr });
-  const canGoNext = !isSameMonth(selectedMonth, nowInAppTz());
+  const canGoNext = canGoToNextMonth(selectedMonth);
   const monthTotal = expenses.reduce(
     (sum, expense) => sum + Number(expense.amount),
     0

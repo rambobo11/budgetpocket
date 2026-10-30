@@ -18,7 +18,7 @@ import { QueryErrorBanner } from "@/components/query-error-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePrivacy } from "@/components/privacy-provider";
-import { currentMonthStart, nowInAppTz } from "@/lib/date";
+import { canGoToNextMonth, currentMonthStart } from "@/lib/date";
 import { fetchExpensesForMonth } from "@/lib/expenses";
 import { formatEuro } from "@/lib/format";
 import { parseDecimalInput } from "@/lib/number-input";
@@ -85,7 +85,7 @@ export function CategoryLimitsView({
 
   const spent = spentByCategory(expenses);
   const monthLabel = format(selectedMonth, "MMMM yyyy", { locale: fr });
-  const canGoNext = !isSameMonth(selectedMonth, nowInAppTz());
+  const canGoNext = canGoToNextMonth(selectedMonth);
 
   async function saveCategory(category: Category) {
     const raw = (drafts[category] ?? "").trim();

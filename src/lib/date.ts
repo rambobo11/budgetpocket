@@ -1,4 +1,4 @@
-import { endOfMonth, format, startOfMonth } from "date-fns";
+import { addMonths, endOfMonth, format, startOfMonth } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 
 /** Fuseau métier de l’app (évite le décalage UTC serveur Vercel). */
@@ -12,6 +12,15 @@ export function nowInAppTz(date: Date = new Date()): Date {
 /** Début de mois courant (calendrier Paris). */
 export function currentMonthStart(): Date {
   return startOfMonth(nowInAppTz());
+}
+
+/** Mois courant + 1 : on peut préparer le mois prochain, pas au-delà. */
+export function latestNavigableMonth(): Date {
+  return startOfMonth(addMonths(nowInAppTz(), 1));
+}
+
+export function canGoToNextMonth(selectedMonth: Date): boolean {
+  return startOfMonth(selectedMonth) < latestNavigableMonth();
 }
 
 /** Date par défaut pour un mois affiché (aujourd’hui si mois courant). */

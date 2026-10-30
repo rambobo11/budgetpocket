@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import type { Asset, Credit, Expense, Income } from "@/lib/types";
 import { formatEuro } from "@/lib/assets";
-import { currentMonthStart, nowInAppTz } from "@/lib/date";
+import { canGoToNextMonth, currentMonthStart } from "@/lib/date";
 import { fetchExpensesBetween, fetchExpensesForMonth } from "@/lib/expenses";
 import { fetchIncomesForMonth } from "@/lib/incomes";
 import {
@@ -123,7 +123,7 @@ export function PatrimoineDashboard({
   const history = buildIncomeHistory(lastNMonths(6, month), historyIncomes);
   const maxHistory = Math.max(...history.map((item) => item.total), 1);
   const positiveDelta = synthèse.income.delta >= 0;
-  const canGoNext = !isSameMonth(month, nowInAppTz());
+  const canGoNext = canGoToNextMonth(month);
   const monthLabel = format(month, "MMMM yyyy", { locale: fr });
 
   return (

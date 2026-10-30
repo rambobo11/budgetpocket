@@ -24,7 +24,7 @@ import type {
   Income,
   UserBalances,
 } from "@/lib/types";
-import { nowInAppTz } from "@/lib/date";
+import { canGoToNextMonth } from "@/lib/date";
 import { fetchExpensesBetween, fetchExpensesForMonth } from "@/lib/expenses";
 import { fetchIncomesForMonth } from "@/lib/incomes";
 import {
@@ -136,7 +136,7 @@ export function StatsDashboard({
   const selectedKey = format(startOfMonth(selectedMonth), "yyyy-MM-dd");
   const positiveDelta = delta.delta <= 0;
   const monthLabel = format(selectedMonth, "MMMM yyyy", { locale: fr });
-  const canGoNext = !isSameMonth(selectedMonth, nowInAppTz());
+  const canGoNext = canGoToNextMonth(selectedMonth);
 
   return (
     <PageShell>

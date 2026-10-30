@@ -19,7 +19,7 @@ import {
   Loader2,
 } from "lucide-react";
 import type { Asset, Credit, Expense, Income } from "@/lib/types";
-import { currentMonthStart, nowInAppTz } from "@/lib/date";
+import { canGoToNextMonth, currentMonthStart, nowInAppTz } from "@/lib/date";
 import { fetchAssets } from "@/lib/assets";
 import { fetchExpensesBetween } from "@/lib/expenses";
 import { fetchIncomesBetween, lastNMonths } from "@/lib/patrimoine-analytics";
@@ -87,7 +87,7 @@ export function SynthesisView({
   const [copied, setCopied] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const canGoNext = !isSameMonth(endMonth, nowInAppTz());
+  const canGoNext = canGoToNextMonth(endMonth);
   const monthLabel = format(endMonth, "MMMM yyyy", { locale: fr });
 
   useEffect(() => {

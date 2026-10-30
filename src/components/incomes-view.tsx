@@ -11,7 +11,7 @@ import {
 import { fr } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Income } from "@/lib/types";
-import { currentMonthStart, nowInAppTz } from "@/lib/date";
+import { canGoToNextMonth, currentMonthStart } from "@/lib/date";
 import { budgetMonthKey, fetchIncomesForMonth } from "@/lib/incomes";
 import { AppHeader } from "@/components/app-header";
 import { AppNav } from "@/components/app-nav";
@@ -52,7 +52,7 @@ export function IncomesView({ initialIncomes }: IncomesViewProps) {
   }, [selectedMonth, initialIncomes]);
 
   const monthLabel = format(selectedMonth, "MMMM yyyy", { locale: fr });
-  const canGoNext = !isSameMonth(selectedMonth, nowInAppTz());
+  const canGoNext = canGoToNextMonth(selectedMonth);
 
   function handleIncomeAdded(income: Income) {
     const selectedKey = budgetMonthKey(selectedMonth);
