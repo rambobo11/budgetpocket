@@ -18,7 +18,12 @@ import {
   TrendingUp,
   Utensils,
 } from "lucide-react";
-import type { Expense, Income } from "@/lib/types";
+import type {
+  CategoryLimit,
+  Expense,
+  Income,
+  UserBalances,
+} from "@/lib/types";
 import { nowInAppTz } from "@/lib/date";
 import { fetchExpensesBetween, fetchExpensesForMonth } from "@/lib/expenses";
 import { fetchIncomesForMonth } from "@/lib/incomes";
@@ -41,18 +46,23 @@ import { CashflowSankey } from "@/components/cashflow-sankey";
 import { CategoryBreakdownSection } from "@/components/category-breakdown";
 import { ExpensePaceChart } from "@/components/expense-pace-chart";
 import { Button } from "@/components/ui/button";
+import { RemainingCard } from "@/components/remaining-card";
 import { QueryErrorBanner } from "@/components/query-error-banner";
 import { QUERY_LOAD_ERROR } from "@/lib/supabase/query";
 
 type StatsDashboardProps = {
   initialExpenses: Expense[];
   initialIncomes: Income[];
+  initialBalances: UserBalances;
+  initialLimits: CategoryLimit[];
   initialMonthIso: string;
 };
 
 export function StatsDashboard({
   initialExpenses,
   initialIncomes,
+  initialBalances,
+  initialLimits,
   initialMonthIso,
 }: StatsDashboardProps) {
   const [selectedMonth, setSelectedMonth] = useState(
@@ -63,9 +73,19 @@ export function StatsDashboard({
   const [historyExpenses, setHistoryExpenses] =
     useState<Expense[]>(initialExpenses);
   const [previousExpenses, setPreviousExpenses] = useState<Expense[]>([]);
+  const [balances, setBalances] = useState<UserBalances>(initialBalances);
+  const [limits, setLimits] = useState<CategoryLimit[]>(initialLimits);
   const [isPending, startTransition] = useTransition();
   const [loadError, setLoadError] = useState<string | null>(null);
   const { mask } = usePrivacy();
+
+  useEffect(() => {
+    setBalances(initialBalances);
+  }, [initialBalances]);
+
+  useEffect(() => {
+    setLimits(initialLimits);
+  }, [initialLimits]);
 
   useEffect(() => {
     const initial = startOfMonth(new Date(initialMonthIso));
@@ -162,6 +182,14 @@ export function StatsDashboard({
       <div
         className={`flex flex-col gap-4 transition-opacity md:gap-6 ${isPending ? "opacity-60" : "opacity-100"}`}
       >
+        <RemainingCard
+          expenses={expenses}
+          incomes={incomes}
+          balances={balances}
+          limits={limits}
+          onBalancesChange={setBalances}
+        />
+
         <section className="rounded-[1.75rem] border border-zinc-200/80 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">

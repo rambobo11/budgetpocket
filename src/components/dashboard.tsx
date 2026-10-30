@@ -11,21 +11,14 @@ import {
 import { formatInTimeZone } from "date-fns-tz";
 import { fr } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type {
-  CategoryLimit,
-  Expense,
-  Income,
-  UserBalances,
-} from "@/lib/types";
+import type { CategoryLimit, Expense } from "@/lib/types";
 import { APP_TIMEZONE, currentMonthStart, nowInAppTz } from "@/lib/date";
 import { fetchExpensesForMonth } from "@/lib/expenses";
-import { fetchIncomesForMonth } from "@/lib/incomes";
 import { formatEuro } from "@/lib/format";
 import { QUERY_LOAD_ERROR } from "@/lib/supabase/query";
 import { AppHeader } from "@/components/app-header";
 import { usePrivacy } from "@/components/privacy-provider";
 import { QuickAddForm } from "@/components/quick-add-form";
-import { RemainingCard } from "@/components/remaining-card";
 import { ExpenseList } from "@/components/expense-list";
 import { AppNav } from "@/components/app-nav";
 import { PageShell } from "@/components/page-shell";
@@ -34,29 +27,19 @@ import { Button } from "@/components/ui/button";
 
 type DashboardProps = {
   initialExpenses: Expense[];
-  initialIncomes: Income[];
-  initialBalances: UserBalances;
   initialLimits: CategoryLimit[];
 };
 
 export function Dashboard({
   initialExpenses,
-  initialIncomes,
-  initialBalances,
   initialLimits,
 }: DashboardProps) {
   const [selectedMonth, setSelectedMonth] = useState(() => currentMonthStart());
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
-  const [incomes, setIncomes] = useState<Income[]>(initialIncomes);
-  const [balances, setBalances] = useState<UserBalances>(initialBalances);
   const [limits, setLimits] = useState<CategoryLimit[]>(initialLimits);
   const [isPending, startTransition] = useTransition();
   const [loadError, setLoadError] = useState<string | null>(null);
   const { mask } = usePrivacy();
-
-  useEffect(() => {
-    setBalances(initialBalances);
-  }, [initialBalances]);
 
   useEffect(() => {
     setLimits(initialLimits);
@@ -66,7 +49,6 @@ export function Dashboard({
     const now = currentMonthStart();
     if (isSameMonth(selectedMonth, now)) {
       setExpenses(initialExpenses);
-      setIncomes(initialIncomes);
       setLoadError(null);
       return;
     }
@@ -74,17 +56,12 @@ export function Dashboard({
     startTransition(async () => {
       setLoadError(null);
       try {
-        const [monthExpenses, monthIncomes] = await Promise.all([
-          fetchExpensesForMonth(selectedMonth),
-          fetchIncomesForMonth(selectedMonth),
-        ]);
-        setExpenses(monthExpenses);
-        setIncomes(monthIncomes);
+        setExpenses(await fetchExpensesForMonth(selectedMonth));
       } catch {
         setLoadError(QUERY_LOAD_ERROR);
       }
     });
-  }, [selectedMonth, initialExpenses, initialIncomes]);
+  }, [selectedMonth, initialExpenses]);
 
   const monthLabel = format(selectedMonth, "MMMM yyyy", { locale: fr });
   const canGoNext = !isSameMonth(selectedMonth, nowInAppTz());
@@ -180,18 +157,6 @@ export function Dashboard({
       <AppNav />
 
       <QueryErrorBanner className="mb-4" message={loadError} />
-
-      <div
-        className={`mb-5 transition-opacity md:mb-8 ${isPending ? "opacity-60" : "opacity-100"}`}
-      >
-        <RemainingCard
-          expenses={expenses}
-          incomes={incomes}
-          balances={balances}
-          limits={limits}
-          onBalancesChange={setBalances}
-        />
-      </div>
 
       <div
         className={`grid grid-cols-1 items-start gap-5 transition-opacity md:grid-cols-2 md:gap-8 ${isPending ? "opacity-60" : "opacity-100"}`}
