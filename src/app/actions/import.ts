@@ -56,6 +56,8 @@ export async function importHistoricalExpensesAction(): Promise<
     const rows = HISTORICAL_EXPENSES.map((expense) => ({
       user_id: user.id,
       amount: expense.amount,
+      amount_original: expense.amount,
+      currency: "EUR" as const,
       category: expense.category,
       description: expense.description,
       payment_method: expense.payment_method,

@@ -100,6 +100,7 @@ const quantitySchema = z
 
 export const createExpenseSchema = z.object({
   amount: amountPositive,
+  currency: z.enum(ASSET_CURRENCIES).optional().default("EUR"),
   category: z.enum(CATEGORIES),
   description: descriptionSchema,
   paymentMethod: z.enum(PAYMENT_METHODS),

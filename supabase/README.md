@@ -8,6 +8,7 @@
 | `crypto-trades.sql` | Journal trades crypto (achats / ventes) |
 | `subscriptions.sql` | Abonnements récurrents (catalogue + totaux) |
 | `add-cash-payment-method.sql` | Ajoute `cash` aux moyens de paiement |
+| `add-expense-currency.sql` | Devise EUR / MAD sur les dépenses (saisie DH, stats en €) |
 | `add-*.sql` / `incomes.sql` / `assets.sql` | Migrations incrémentales si la base existait déjà |
 
 Ne ré-exécute pas les scripts `add-*` si `schema.sql` consolidé a déjà été appliqué.

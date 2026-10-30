@@ -12,6 +12,8 @@ create table if not exists public.expenses (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users (id) on delete cascade,
   amount numeric(12, 2) not null check (amount > 0),
+  amount_original numeric(12, 2) not null check (amount_original > 0),
+  currency text not null default 'EUR' check (currency in ('EUR', 'MAD')),
   category text not null,
   description text,
   payment_method text not null default 'cb' check (payment_method in ('cb', 'swile', 'cash')),

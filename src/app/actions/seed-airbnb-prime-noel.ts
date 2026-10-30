@@ -88,6 +88,8 @@ export async function ensureAirbnbPrimeNoelExpenseAction(): Promise<
       .insert({
         user_id: user.id,
         amount,
+        amount_original: amount,
+        currency: "EUR",
         category: SEED_CATEGORY,
         description: `Carte Airbnb · Prime Noël (${SEED_TAG})`,
         payment_method: "swile",

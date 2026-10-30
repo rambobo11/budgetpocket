@@ -208,6 +208,8 @@ export async function completeUpcomingAction(
       const { error: expenseError } = await supabase.from("expenses").insert({
         user_id: user.id,
         amount: item.amount,
+        amount_original: item.amount,
+        currency: "EUR",
         category,
         description: item.title,
         payment_method: method,

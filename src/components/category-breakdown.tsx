@@ -6,6 +6,10 @@ import { fr } from "date-fns/locale";
 import { ChevronDown } from "lucide-react";
 import { APP_TIMEZONE } from "@/lib/date";
 import { formatEuro } from "@/lib/format";
+import {
+  expenseCurrency,
+  formatExpenseEntered,
+} from "@/lib/expense-currency";
 import type { CategoryBreakdown } from "@/lib/kpis";
 import type { Expense } from "@/lib/types";
 import { usePrivacy } from "@/components/privacy-provider";
@@ -63,6 +67,11 @@ function CategoryExpenseList({ expenses }: { expenses: Expense[] }) {
                     { locale: fr }
                   )}
                 </span>
+                {expenseCurrency(expense) === "MAD" ? (
+                  <span className="rounded bg-teal-50 px-1 py-px text-[10px] font-semibold tracking-wide text-teal-800 uppercase dark:bg-teal-950 dark:text-teal-300">
+                    MAD
+                  </span>
+                ) : null}
                 {expense.payment_method === "swile" ? (
                   <span className="rounded bg-emerald-50 px-1 py-px text-[10px] font-semibold tracking-wide text-emerald-700 uppercase dark:bg-emerald-950 dark:text-emerald-400">
                     Swile
@@ -74,9 +83,16 @@ function CategoryExpenseList({ expenses }: { expenses: Expense[] }) {
                 ) : null}
               </p>
             </div>
-            <p className="shrink-0 text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-              {mask(formatEuro(Number(expense.amount)))}
-            </p>
+            <div className="shrink-0 text-right">
+              <p className="text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+                {mask(formatEuro(Number(expense.amount)))}
+              </p>
+              {expenseCurrency(expense) === "MAD" ? (
+                <p className="text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                  {mask(formatExpenseEntered(expense))}
+                </p>
+              ) : null}
+            </div>
           </li>
         ))}
       </ul>

@@ -11,9 +11,17 @@ import {
 import { APP_TIMEZONE } from "@/lib/date";
 import { formatEuro } from "@/lib/format";
 import {
+  expenseCurrency,
+  formatExpenseEntered,
+  MAD_TO_EUR,
+  toEuro,
+} from "@/lib/expense-currency";
+import { parseDecimalInput } from "@/lib/number-input";
+import {
   CATEGORIES,
   PAYMENT_METHODS,
   PAYMENT_METHOD_LABELS,
+  type AssetCurrency,
   type Category,
   type Expense,
   type PaymentMethod,
@@ -54,6 +62,7 @@ export function ExpenseList({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState<AssetCurrency>("EUR");
   const [category, setCategory] = useState<Category>(CATEGORIES[0]);
   const [description, setDescription] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cb");
@@ -77,7 +86,10 @@ export function ExpenseList({
   function startEdit(expense: Expense) {
     setError(null);
     setEditingId(expense.id);
-    setAmount(String(expense.amount).replace(".", ","));
+    setAmount(
+      String(expense.amount_original ?? expense.amount).replace(".", ",")
+    );
+    setCurrency(expenseCurrency(expense));
     setCategory(expense.category);
     setDescription(expense.description ?? "");
     setPaymentMethod(expense.payment_method);
@@ -96,6 +108,7 @@ export function ExpenseList({
     const result = await updateExpenseAction({
       id: expense.id,
       amount,
+      currency,
       category,
       description: description.trim() || null,
       paymentMethod,
@@ -182,6 +195,11 @@ export function ExpenseList({
                         <Pencil className="size-3 shrink-0 text-zinc-400" />
                       </button>
                     )}
+                    {expenseCurrency(expense) === "MAD" ? (
+                      <span className="shrink-0 rounded-md bg-teal-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-teal-800 uppercase dark:bg-teal-950 dark:text-teal-300">
+                        MAD
+                      </span>
+                    ) : null}
                     {expense.payment_method === "swile" ? (
                       <span className="shrink-0 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-700 uppercase dark:bg-emerald-950 dark:text-emerald-400">
                         Swile
@@ -204,9 +222,16 @@ export function ExpenseList({
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-                  <p className="text-[15px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
-                    {mask(formatEuro(Number(expense.amount)))}
-                  </p>
+                  <div className="text-right">
+                    <p className="text-[15px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+                      {mask(formatEuro(Number(expense.amount)))}
+                    </p>
+                    {expenseCurrency(expense) === "MAD" ? (
+                      <p className="text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                        {mask(formatExpenseEntered(expense))}
+                      </p>
+                    ) : null}
+                  </div>
                   {!isEditing ? (
                     <Button
                       type="button"
@@ -260,13 +285,35 @@ export function ExpenseList({
                     </div>
                   </div>
 
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-[11px] font-medium tracking-wide text-zinc-500 uppercase">
+                      Devise
+                    </Label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {(["EUR", "MAD"] as const).map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          onClick={() => setCurrency(item)}
+                          className={`h-9 rounded-lg border text-xs font-medium transition-colors ${
+                            currency === item
+                              ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                              : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400"
+                          }`}
+                        >
+                          {item === "EUR" ? "Euro (€)" : "Dirham (MAD)"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="flex flex-col gap-1.5">
                       <Label
                         htmlFor={`edit-amount-${expense.id}`}
                         className="text-[11px] font-medium tracking-wide text-zinc-500 uppercase"
                       >
-                        Montant
+                        Montant {currency === "MAD" ? "(DH)" : "(€)"}
                       </Label>
                       <Input
                         id={`edit-amount-${expense.id}`}
@@ -277,6 +324,14 @@ export function ExpenseList({
                         onChange={(e) => setAmount(e.target.value)}
                         className="h-10 rounded-xl border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-950"
                       />
+                      {currency === "MAD" &&
+                      Number.isFinite(parseDecimalInput(amount)) &&
+                      parseDecimalInput(amount) > 0 ? (
+                        <p className="text-[11px] text-zinc-500">
+                          ≈ {formatEuro(toEuro(parseDecimalInput(amount), "MAD"))}{" "}
+                          · 1 MAD = {MAD_TO_EUR} €
+                        </p>
+                      ) : null}
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <Label

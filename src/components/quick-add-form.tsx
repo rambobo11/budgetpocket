@@ -8,10 +8,14 @@ import {
   buildRecentCategories,
   rememberCategory,
 } from "@/lib/recent-categories";
+import { formatEuro } from "@/lib/format";
+import { MAD_TO_EUR, toEuro } from "@/lib/expense-currency";
+import { parseDecimalInput } from "@/lib/number-input";
 import {
   CATEGORIES,
   PAYMENT_METHODS,
   PAYMENT_METHOD_LABELS,
+  type AssetCurrency,
   type Category,
   type Expense,
   type PaymentMethod,
@@ -40,6 +44,7 @@ export function QuickAddForm({
 }: QuickAddFormProps) {
   const bounds = monthBounds(selectedMonth);
   const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState<AssetCurrency>("EUR");
   const [category, setCategory] = useState<Category | null>(null);
   const [description, setDescription] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cb");
@@ -78,6 +83,7 @@ export function QuickAddForm({
 
     const result = await createExpenseAction({
       amount,
+      currency,
       category,
       description: description.trim() || null,
       paymentMethod,
@@ -103,6 +109,12 @@ export function QuickAddForm({
     setLoading(false);
   }
 
+  const parsedAmount = parseDecimalInput(amount);
+  const previewEuro =
+    currency === "MAD" && Number.isFinite(parsedAmount) && parsedAmount > 0
+      ? toEuro(parsedAmount, "MAD")
+      : null;
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -113,11 +125,34 @@ export function QuickAddForm({
           Ajout rapide
         </h2>
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Ajoutez une dépense. CB et Cash (ATM) = salaire · Swile = tickets resto.
+          Ajoutez une dépense. MAD → stats en €. CB et Cash = salaire · Swile =
+          tickets.
         </p>
       </div>
 
       <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <Label className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
+            Devise
+          </Label>
+          <div className="grid grid-cols-2 gap-2">
+            {(["EUR", "MAD"] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setCurrency(item)}
+                className={`h-11 rounded-xl border text-sm font-medium transition-colors ${
+                  currency === item
+                    ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                    : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400"
+                }`}
+              >
+                {item === "EUR" ? "Euro (€)" : "Dirham (MAD)"}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex flex-col gap-2">
           <Label
             htmlFor="amount"
@@ -135,12 +170,17 @@ export function QuickAddForm({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0,00"
-              className="h-16 rounded-2xl border-zinc-200 bg-zinc-50/80 pr-12 text-center text-3xl font-semibold tracking-tight text-zinc-900 shadow-none placeholder:text-zinc-300 focus-visible:border-zinc-400 focus-visible:bg-white focus-visible:ring-zinc-400/20 dark:border-zinc-700 dark:bg-zinc-950/60 dark:text-zinc-50 dark:placeholder:text-zinc-600 dark:focus-visible:border-zinc-500 dark:focus-visible:bg-zinc-950 dark:focus-visible:ring-zinc-500/20"
+              className="h-16 rounded-2xl border-zinc-200 bg-zinc-50/80 pr-14 text-center text-3xl font-semibold tracking-tight text-zinc-900 shadow-none placeholder:text-zinc-300 focus-visible:border-zinc-400 focus-visible:bg-white focus-visible:ring-zinc-400/20 dark:border-zinc-700 dark:bg-zinc-950/60 dark:text-zinc-50 dark:placeholder:text-zinc-600 dark:focus-visible:border-zinc-500 dark:focus-visible:bg-zinc-950 dark:focus-visible:ring-zinc-500/20"
             />
             <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-lg font-medium text-zinc-400">
-              €
+              {currency === "MAD" ? "DH" : "€"}
             </span>
           </div>
+          {previewEuro != null ? (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              ≈ {formatEuro(previewEuro)} dans les stats (1 MAD = {MAD_TO_EUR} €)
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-2">

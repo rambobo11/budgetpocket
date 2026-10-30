@@ -12,6 +12,10 @@ import {
   idSchema,
   updateExpenseSchema,
 } from "@/lib/validation/schemas";
+import {
+  normalizeExpense,
+  splitExpenseAmounts,
+} from "@/lib/expense-currency";
 import type { Expense } from "@/lib/types";
 
 export type CreateExpenseResult = {
@@ -43,13 +47,17 @@ export async function createExpenseAction(
       return fail("Trop de requêtes. Réessaie dans un instant.");
     }
 
-    const { amount, category, description, paymentMethod, date } = parsed.data;
+    const { amount, currency, category, description, paymentMethod, date } =
+      parsed.data;
+    const converted = splitExpenseAmounts(amount, currency);
 
     const { data, error } = await supabase
       .from("expenses")
       .insert({
         user_id: user.id,
-        amount,
+        amount: converted.amount,
+        amount_original: converted.amount_original,
+        currency: converted.currency,
         category,
         description,
         payment_method: paymentMethod,
@@ -67,7 +75,10 @@ export async function createExpenseAction(
         ? "Swile = tickets resto (hors salaire). La Prime Noël se gère dans Patrimoine."
         : null;
 
-    return ok({ expense: data as Expense, swileNote });
+    return ok({
+      expense: normalizeExpense(data as Expense),
+      swileNote,
+    });
   } catch (error) {
     return mapAuthError(error);
   }
@@ -91,8 +102,9 @@ export async function updateExpenseAction(
       return fail("Trop de requêtes. Réessaie dans un instant.");
     }
 
-    const { id, amount, category, description, paymentMethod, date } =
+    const { id, amount, currency, category, description, paymentMethod, date } =
       parsed.data;
+    const converted = splitExpenseAmounts(amount, currency);
 
     const { data: existing, error: loadError } = await supabase
       .from("expenses")
@@ -111,7 +123,9 @@ export async function updateExpenseAction(
     const { data, error } = await supabase
       .from("expenses")
       .update({
-        amount,
+        amount: converted.amount,
+        amount_original: converted.amount_original,
+        currency: converted.currency,
         category,
         description,
         payment_method: paymentMethod,
@@ -126,7 +140,7 @@ export async function updateExpenseAction(
       return fail("Impossible de modifier la dépense. Réessaie.");
     }
 
-    return ok({ expense: data as Expense });
+    return ok({ expense: normalizeExpense(data as Expense) });
   } catch (error) {
     return mapAuthError(error);
   }

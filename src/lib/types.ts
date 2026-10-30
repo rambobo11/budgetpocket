@@ -37,10 +37,18 @@ export const INCOME_SOURCES = [
 
 export type IncomeSource = (typeof INCOME_SOURCES)[number];
 
+export const ASSET_CURRENCIES = ["EUR", "MAD"] as const;
+
+export type AssetCurrency = (typeof ASSET_CURRENCIES)[number];
+
 export type Expense = {
   id: string;
   user_id: string;
+  /** Toujours en EUR (après conversion) — c’est ce que les stats additionnent. */
   amount: number;
+  /** Montant saisi (DH ou €). */
+  amount_original: number;
+  currency: AssetCurrency;
   category: Category;
   description: string | null;
   payment_method: PaymentMethod;
@@ -69,10 +77,6 @@ export const ASSET_TYPES = [
 ] as const;
 
 export type AssetType = (typeof ASSET_TYPES)[number];
-
-export const ASSET_CURRENCIES = ["EUR", "MAD"] as const;
-
-export type AssetCurrency = (typeof ASSET_CURRENCIES)[number];
 
 export type Asset = {
   id: string;

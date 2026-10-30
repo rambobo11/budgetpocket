@@ -82,6 +82,8 @@ export async function ensureSwileCreatineExpenseAction(): Promise<
       .insert({
         user_id: user.id,
         amount: SEED_AMOUNT,
+        amount_original: SEED_AMOUNT,
+        currency: "EUR",
         category: SEED_CATEGORY,
         description: `Creatine (${SWILE_CREATINE_SEED_TAG})`,
         payment_method: "swile",

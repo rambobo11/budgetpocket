@@ -3,17 +3,7 @@ import { unwrapList } from "@/lib/supabase/query";
 import { formatEuro, formatMad } from "@/lib/format";
 import type { Asset, AssetCurrency, AssetType } from "@/lib/types";
 
-export { formatEuro, formatMad } from "@/lib/format";
-
-/** Taux approx. pour convertir MAD → EUR (1 MAD ≈ 0,092 €) */
-export const MAD_TO_EUR = 0.092;
-
-export function toEuro(amount: number, currency: AssetCurrency): number {
-  if (currency === "MAD") {
-    return Number((amount * MAD_TO_EUR).toFixed(2));
-  }
-  return Number(amount.toFixed(2));
-}
+export { formatEuro, formatMad, MAD_TO_EUR, toEuro } from "@/lib/format";
 
 export function defaultCurrencyForType(type: AssetType): AssetCurrency {
   return type === "Compte MA" ? "MAD" : "EUR";

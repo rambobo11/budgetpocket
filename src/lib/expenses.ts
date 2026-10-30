@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import { unwrapList } from "@/lib/supabase/query";
 import { monthIsoBounds } from "@/lib/date";
+import { normalizeExpense } from "@/lib/expense-currency";
 import type { Expense } from "@/lib/types";
 
 export { defaultDateForMonth, monthBounds } from "@/lib/date";
@@ -17,7 +18,9 @@ export async function fetchExpensesForMonth(month: Date): Promise<Expense[]> {
     .order("created_at", { ascending: false })
     .limit(500);
 
-  return unwrapList(result, "Impossible de charger les dépenses.");
+  return unwrapList(result, "Impossible de charger les dépenses.").map(
+    (row) => normalizeExpense(row as Expense)
+  );
 }
 
 /** Dépenses entre le début de `fromMonth` et la fin de `toMonth` (inclus). */
@@ -37,5 +40,7 @@ export async function fetchExpensesBetween(
     .order("created_at", { ascending: false })
     .limit(3000);
 
-  return unwrapList(result, "Impossible de charger les dépenses.");
+  return unwrapList(result, "Impossible de charger les dépenses.").map(
+    (row) => normalizeExpense(row as Expense)
+  );
 }
