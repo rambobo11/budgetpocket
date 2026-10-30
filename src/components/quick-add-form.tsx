@@ -120,46 +120,36 @@ export function QuickAddForm({
       onSubmit={handleSubmit}
       className="min-w-0 overflow-hidden rounded-[1.75rem] border border-zinc-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.04)] sm:p-7 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none"
     >
-      <div className="mb-5">
-        <h2 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Ajout rapide
-        </h2>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Ajoutez une dépense. MAD → stats en €. CB et Cash = salaire · Swile =
-          tickets.
-        </p>
-      </div>
+      <h2 className="mb-4 text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+        Ajout rapide
+      </h2>
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
-            Devise
-          </Label>
-          <div className="grid grid-cols-2 gap-2">
-            {(["EUR", "MAD"] as const).map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setCurrency(item)}
-                className={`h-11 rounded-xl border text-sm font-medium transition-colors ${
-                  currency === item
-                    ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                    : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400"
-                }`}
-              >
-                {item === "EUR" ? "Euro (€)" : "Dirham (MAD)"}
-              </button>
-            ))}
+          <div className="flex items-center justify-between gap-3">
+            <Label
+              htmlFor="amount"
+              className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400"
+            >
+              Montant
+            </Label>
+            <div className="flex rounded-lg border border-zinc-200 p-0.5 dark:border-zinc-700">
+              {(["EUR", "MAD"] as const).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setCurrency(item)}
+                  className={`h-7 min-w-11 rounded-md px-2 text-xs font-semibold transition-colors ${
+                    currency === item
+                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                      : "text-zinc-500 dark:text-zinc-400"
+                  }`}
+                >
+                  {item === "EUR" ? "€" : "DH"}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label
-            htmlFor="amount"
-            className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400"
-          >
-            Montant
-          </Label>
           <div className="relative">
             <Input
               id="amount"
@@ -178,7 +168,7 @@ export function QuickAddForm({
           </div>
           {previewEuro != null ? (
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              ≈ {formatEuro(previewEuro)} dans les stats (1 MAD = {MAD_TO_EUR} €)
+              ≈ {formatEuro(previewEuro)} (1 MAD = {MAD_TO_EUR} €)
             </p>
           ) : null}
         </div>
@@ -249,45 +239,6 @@ export function QuickAddForm({
           </Select>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-2">
-          <Label
-            htmlFor="date"
-            className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400"
-          >
-            Date
-          </Label>
-          <Input
-            id="date"
-            type="date"
-            required
-            min={bounds.min}
-            max={bounds.max}
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="h-12 w-full max-w-full min-w-0 rounded-xl border-zinc-200 bg-white px-4 text-base shadow-none focus-visible:border-zinc-400 focus-visible:ring-zinc-400/20 dark:border-zinc-700 dark:bg-zinc-950 dark:focus-visible:border-zinc-500 dark:focus-visible:ring-zinc-500/20"
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label
-            htmlFor="description"
-            className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400"
-          >
-            Description{" "}
-            <span className="normal-case tracking-normal text-zinc-400">
-              (optionnel)
-            </span>
-          </Label>
-          <Input
-            id="description"
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Ex. courses, essence…"
-            className="h-12 rounded-xl border-zinc-200 bg-white px-4 text-base shadow-none focus-visible:border-zinc-400 focus-visible:ring-zinc-400/20 dark:border-zinc-700 dark:bg-zinc-950 dark:focus-visible:border-zinc-500 dark:focus-visible:ring-zinc-500/20"
-          />
-        </div>
-
         {error ? (
           <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400">
             {error}
@@ -303,7 +254,7 @@ export function QuickAddForm({
         <Button
           type="submit"
           disabled={loading}
-          className="mt-1 h-12 rounded-2xl bg-zinc-900 text-[15px] font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+          className="sticky bottom-3 z-10 h-12 rounded-2xl bg-zinc-900 text-[15px] font-medium text-white shadow-lg hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
         >
           {loading ? (
             <>
@@ -313,10 +264,50 @@ export function QuickAddForm({
           ) : (
             <>
               <Plus className="size-4" />
-              Ajouter la dépense
+              Ajouter
             </>
           )}
         </Button>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,9.5rem)_1fr]">
+          <div className="flex min-w-0 flex-col gap-2">
+            <Label
+              htmlFor="date"
+              className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400"
+            >
+              Date
+            </Label>
+            <Input
+              id="date"
+              type="date"
+              required
+              min={bounds.min}
+              max={bounds.max}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="h-11 w-full max-w-full min-w-0 rounded-xl border-zinc-200 bg-white px-3 text-sm shadow-none focus-visible:border-zinc-400 focus-visible:ring-zinc-400/20 dark:border-zinc-700 dark:bg-zinc-950 dark:focus-visible:border-zinc-500 dark:focus-visible:ring-zinc-500/20"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label
+              htmlFor="description"
+              className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400"
+            >
+              Note{" "}
+              <span className="normal-case tracking-normal text-zinc-400">
+                (optionnel)
+              </span>
+            </Label>
+            <Input
+              id="description"
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Courses, essence…"
+              className="h-11 rounded-xl border-zinc-200 bg-white px-4 text-sm shadow-none focus-visible:border-zinc-400 focus-visible:ring-zinc-400/20 dark:border-zinc-700 dark:bg-zinc-950 dark:focus-visible:border-zinc-500 dark:focus-visible:ring-zinc-500/20"
+            />
+          </div>
+        </div>
       </div>
     </form>
   );
