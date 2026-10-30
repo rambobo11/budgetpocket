@@ -18,12 +18,14 @@ import {
 import { suggestBudgetMonth } from "@/lib/incomes";
 import { nowInAppTz } from "@/lib/date";
 import { formatEuro } from "@/lib/format";
+import { MAD_TO_EUR, toEuro } from "@/lib/expense-currency";
 import { sortUpcoming } from "@/lib/upcoming-kpis";
 import {
   CATEGORIES,
   INCOME_SOURCES,
   PAYMENT_METHODS,
   PAYMENT_METHOD_LABELS,
+  type AssetCurrency,
   type Category,
   type IncomeSource,
   type PaymentMethod,
@@ -59,6 +61,7 @@ export function UpcomingList({
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [category, setCategory] = useState<Category>("Autres");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cb");
+  const [currency, setCurrency] = useState<AssetCurrency>("EUR");
   const [source, setSource] = useState<IncomeSource>("Autres");
   const [expanded, setExpanded] = useState(false);
   const inFlight = useRef(false);
@@ -73,6 +76,7 @@ export function UpcomingList({
     setConvertingId(item.id);
     setCategory("Autres");
     setPaymentMethod("cb");
+    setCurrency("EUR");
     setSource("Autres");
   }
 
@@ -91,6 +95,7 @@ export function UpcomingList({
                 convert: true,
                 category,
                 paymentMethod,
+                currency,
                 date: eventDate,
               }
             : {
@@ -246,21 +251,23 @@ export function UpcomingList({
                   </p>
                   <div className="flex items-center gap-1">
                     {isDone ? (
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        disabled={busyId === item.id}
-                        onClick={() => void handleReopen(item)}
-                        className="size-8 rounded-full text-zinc-500 dark:text-zinc-400"
-                        aria-label="Rouvrir"
-                      >
-                        {busyId === item.id ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <RotateCcw className="size-4" />
-                        )}
-                      </Button>
+                      alreadyConverted ? null : (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          disabled={busyId === item.id}
+                          onClick={() => void handleReopen(item)}
+                          className="size-8 rounded-full text-zinc-500 dark:text-zinc-400"
+                          aria-label="Rouvrir"
+                        >
+                          {busyId === item.id ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <RotateCcw className="size-4" />
+                          )}
+                        </Button>
+                      )
                     ) : (
                       <Button
                         type="button"
@@ -374,6 +381,36 @@ export function UpcomingList({
                                 </button>
                               ))}
                             </div>
+                          </div>
+                          <div className="flex flex-col gap-1.5 sm:col-span-2">
+                            <Label className="text-xs text-zinc-500 dark:text-zinc-400">
+                              Devise
+                            </Label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {(["EUR", "MAD"] as const).map((itemCurrency) => (
+                                <button
+                                  key={itemCurrency}
+                                  type="button"
+                                  onClick={() => setCurrency(itemCurrency)}
+                                  className={`h-10 rounded-xl border text-sm font-medium ${
+                                    currency === itemCurrency
+                                      ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                                      : "border-zinc-200 bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400"
+                                  }`}
+                                >
+                                  {itemCurrency === "EUR"
+                                    ? "Euro (€)"
+                                    : "Dirham (MAD)"}
+                                </button>
+                              ))}
+                            </div>
+                            {currency === "MAD" ? (
+                              <p className="text-[11px] text-zinc-500">
+                                {Number(item.amount).toFixed(2)} DH → ≈{" "}
+                                {formatEuro(toEuro(Number(item.amount), "MAD"))}{" "}
+                                · 1 MAD = {MAD_TO_EUR} €
+                              </p>
+                            ) : null}
                           </div>
                         </div>
                       ) : (

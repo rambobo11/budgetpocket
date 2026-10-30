@@ -5,7 +5,7 @@ import {
   assertSeedImportAllowed,
   getAuthedClient,
 } from "@/lib/security/auth";
-import { ok, type ActionResult } from "@/lib/security/action-result";
+import { fail, ok, type ActionResult } from "@/lib/security/action-result";
 import { calendarDateWithNowTimeToIso, nowInAppTz } from "@/lib/date";
 import { format } from "date-fns";
 import {
@@ -17,8 +17,6 @@ import type { Asset } from "@/lib/types";
 /** Tag stable pour idempotence. */
 const SEED_TAG = "seed:airbnb-prime-noel-2026-08";
 
-/** Fallback si le solde patrimoine n’est plus lisible. */
-const FALLBACK_AMOUNT = 25.71;
 const SEED_CATEGORY = "Travel" as const;
 
 /**
@@ -74,13 +72,18 @@ export async function ensureAirbnbPrimeNoelExpenseAction(): Promise<
 
     const remaining = prime
       ? Number(prime.value_original ?? prime.value_eur)
-      : FALLBACK_AMOUNT;
+      : 0;
 
-    const amount =
-      Number.isFinite(remaining) && remaining > 0
-        ? Number(remaining.toFixed(2))
-        : FALLBACK_AMOUNT;
+    if (!Number.isFinite(remaining) || remaining <= 0) {
+      return ok({
+        created: false,
+        expenseId: null,
+        amount: null,
+        primeZeroed: true,
+      });
+    }
 
+    const amount = Number(remaining.toFixed(2));
     const today = format(nowInAppTz(), "yyyy-MM-dd");
 
     const { data, error } = await supabase
@@ -92,19 +95,14 @@ export async function ensureAirbnbPrimeNoelExpenseAction(): Promise<
         currency: "EUR",
         category: SEED_CATEGORY,
         description: `Carte Airbnb · Prime Noël (${SEED_TAG})`,
-        payment_method: "swile",
+        payment_method: "cb",
         created_at: calendarDateWithNowTimeToIso(today),
       })
       .select("id")
       .single();
 
     if (error || !data) {
-      return ok({
-        created: false,
-        expenseId: null,
-        amount: null,
-        primeZeroed: false,
-      });
+      return fail("Impossible d’enregistrer la dépense Prime Noël.");
     }
 
     let primeZeroed = false;

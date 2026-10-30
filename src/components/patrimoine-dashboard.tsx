@@ -385,7 +385,7 @@ export function PatrimoineDashboard({
                 : `${synthèse.savingsRate.toFixed(0)} %`}
             </p>
             <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-              Revenus − dépenses du mois
+              Salaire + CAF… − CB/cash (hors tickets Swile)
             </p>
           </div>
         </div>

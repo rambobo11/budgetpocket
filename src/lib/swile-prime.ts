@@ -1,4 +1,4 @@
-import type { Asset, Expense, PaymentMethod } from "@/lib/types";
+import type { Asset, Expense, Income, PaymentMethod } from "@/lib/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /** Dépense qui pèse sur le salaire : CB + Cash (retrait ATM). Swile = tickets resto CSE. */
@@ -12,6 +12,18 @@ export function sumSalaryExpenses(expenses: Expense[]): number {
   return expenses.reduce((sum, expense) => {
     if (!isSalaryExpense(expense)) return sum;
     return sum + Number(expense.amount);
+  }, 0);
+}
+
+/** Revenu qui pèse sur le cashflow salaire. Swile = tickets resto, pas de l’épargne. */
+export function isSalaryIncome(income: Pick<Income, "source">): boolean {
+  return (income.source ?? "Autres") !== "Swile";
+}
+
+export function sumSalaryIncomes(incomes: Income[]): number {
+  return incomes.reduce((sum, income) => {
+    if (!isSalaryIncome(income)) return sum;
+    return sum + Number(income.amount);
   }, 0);
 }
 

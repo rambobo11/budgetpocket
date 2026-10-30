@@ -11,6 +11,7 @@ import {
   createUpcomingSchema,
   idSchema,
 } from "@/lib/validation/schemas";
+import { splitExpenseAmounts } from "@/lib/expense-currency";
 import type { Upcoming } from "@/lib/types";
 
 function mapAuthError(error: unknown): ActionResult<never> {
@@ -112,6 +113,7 @@ export async function completeUpcomingAction(
       convert,
       category,
       paymentMethod,
+      currency,
       source,
       date,
       budgetMonth,
@@ -191,8 +193,8 @@ export async function completeUpcomingAction(
       return ok(claimedItem);
     }
 
-    async function rollbackClaim() {
-      await supabase
+    async function rollbackClaim(): Promise<boolean> {
+      const { error } = await supabase
         .from("upcoming")
         .update({
           status: "open",
@@ -201,23 +203,29 @@ export async function completeUpcomingAction(
         })
         .eq("id", id)
         .eq("user_id", user.id);
+      return !error;
     }
 
     if (item.kind === "À payer") {
       const method = paymentMethod ?? "cb";
+      const converted = splitExpenseAmounts(Number(item.amount), currency);
       const { error: expenseError } = await supabase.from("expenses").insert({
         user_id: user.id,
-        amount: item.amount,
-        amount_original: item.amount,
-        currency: "EUR",
+        amount: converted.amount,
+        amount_original: converted.amount_original,
+        currency: converted.currency,
         category,
         description: item.title,
         payment_method: method,
         created_at: calendarDateWithNowTimeToIso(eventDate),
       });
       if (expenseError) {
-        await rollbackClaim();
-        return fail("Impossible de créer la dépense. Réessaie.");
+        const rolledBack = await rollbackClaim();
+        return fail(
+          rolledBack
+            ? "Impossible de créer la dépense. Réessaie."
+            : "La dépense n’a pas été créée et l’échéance est restée marquée faite. Rouvre-la à la main."
+        );
       }
     } else {
       const suggested = suggestBudgetMonth(source!, eventDate).slice(0, 7);
@@ -231,11 +239,16 @@ export async function completeUpcomingAction(
         created_at: calendarDateToIso(eventDate),
       });
       if (incomeError) {
-        await rollbackClaim();
+        const rolledBack = await rollbackClaim();
+        if (incomeError.message?.includes("budget_month")) {
+          return fail(
+            "Colonne budget_month manquante. Exécute supabase/add-budget-month.sql."
+          );
+        }
         return fail(
-          incomeError.message?.includes("budget_month")
-            ? "Colonne budget_month manquante. Exécute supabase/add-budget-month.sql."
-            : "Impossible de créer le revenu. Réessaie."
+          rolledBack
+            ? "Impossible de créer le revenu. Réessaie."
+            : "Le revenu n’a pas été créé et l’échéance est restée marquée faite. Rouvre-la à la main."
         );
       }
     }
@@ -275,13 +288,35 @@ export async function reopenUpcomingAction(
     }
 
     const { id } = parsed.data;
+
+    const { data: existing, error: loadError } = await supabase
+      .from("upcoming")
+      .select("*")
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (loadError || !existing) {
+      return fail(
+        missingTableHint(loadError?.message) ?? "Échéance introuvable."
+      );
+    }
+
+    const item = asUpcoming(existing as Record<string, unknown>);
+    if (item.converted) {
+      return fail(
+        "Cette ligne a déjà créé une dépense ou un revenu. Supprime-la dans Dépenses / Revenus si c’était une erreur."
+      );
+    }
+
     const now = new Date().toISOString();
 
     const { data, error } = await supabase
       .from("upcoming")
-      .update({ status: "open", updated_at: now })
+      .update({ status: "open", converted: false, updated_at: now })
       .eq("id", id)
       .eq("user_id", user.id)
+      .eq("converted", false)
       .select()
       .maybeSingle();
 

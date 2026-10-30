@@ -22,7 +22,7 @@ import {
   lastNMonths,
 } from "@/lib/patrimoine-analytics";
 import type { Asset, Credit, Expense, Income } from "@/lib/types";
-import { sumSalaryExpenses } from "@/lib/swile-prime";
+import { sumSalaryExpenses, sumSalaryIncomes } from "@/lib/swile-prime";
 
 export type SynthesisPeriod = "1" | "3" | "6";
 
@@ -460,21 +460,27 @@ export function buildSynthesisMarkdown(input: SynthesisInput): string {
       if ((e.payment_method ?? "cb") !== "swile") return sum;
       return sum + Number(e.amount);
     }, 0);
-    const incomeTotal = incomes.reduce(
-      (sum, i) => sum + Number(i.amount),
-      0
-    );
+    const incomeTotal = sumSalaryIncomes(incomes);
+    const swileIncome = incomes.reduce((sum, i) => {
+      if (i.source !== "Swile") return sum;
+      return sum + Number(i.amount);
+    }, 0);
     const savings = incomeTotal - expenseTotal;
     const rate =
       incomeTotal > 0 ? (savings / incomeTotal) * 100 : null;
     parts.push("## Vue d’ensemble");
     parts.push("");
-    parts.push(`- **Revenus** : ${euro(incomeTotal)}`);
-    parts.push(`- **Dépenses CB (salaire)** : ${euro(expenseTotal)}`);
-    if (swileTotal > 0) {
-      parts.push(`- **Dépenses Swile (prime CSE)** : ${euro(swileTotal)}`);
+    parts.push(`- **Revenus (hors tickets Swile)** : ${euro(incomeTotal)}`);
+    parts.push(`- **Dépenses CB + cash (salaire)** : ${euro(expenseTotal)}`);
+    if (swileIncome > 0) {
+      parts.push(
+        `- **Recharge Swile (tickets, hors épargne)** : ${euro(swileIncome)}`
+      );
     }
-    parts.push(`- **Épargne nette** : ${euro(savings)}`);
+    if (swileTotal > 0) {
+      parts.push(`- **Dépenses Swile (tickets CSE)** : ${euro(swileTotal)}`);
+    }
+    parts.push(`- **Épargne nette (salaire)** : ${euro(savings)}`);
     if (rate != null) {
       parts.push(`- **Taux d’épargne** : ${rate.toFixed(1)} %`);
     }

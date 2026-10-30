@@ -184,7 +184,7 @@ export function CashflowSankey({ incomes, expenses }: CashflowSankeyProps) {
             Cashflow
           </h2>
           <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
-            Revenus → budget → catégories
+            Salaire + CAF… → budget → CB/cash (hors tickets Swile)
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs sm:text-sm">

@@ -16,6 +16,7 @@ import {
   type PatrimoineKpis,
 } from "@/lib/assets";
 import type { Asset } from "@/lib/types";
+import { sumSalaryIncomes } from "@/lib/swile-prime";
 
 export type IncomeSourceBreakdown = {
   source: string;
@@ -157,11 +158,10 @@ export function computePatrimoineSynthèse(input: {
   );
   const months = lastNMonths(input.historyMonths ?? 6, input.month);
   const history = buildIncomeHistory(months, input.historyIncomes);
-  const savings = income.current.total - input.expensesTotal;
+  const salaryIncome = sumSalaryIncomes(input.currentIncomes);
+  const savings = salaryIncome - input.expensesTotal;
   const savingsRate =
-    income.current.total > 0
-      ? (savings / income.current.total) * 100
-      : null;
+    salaryIncome > 0 ? (savings / salaryIncome) * 100 : null;
 
   return {
     patrimoine,

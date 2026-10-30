@@ -217,6 +217,7 @@ export const completeUpcomingSchema = z.object({
   convert: z.boolean(),
   category: z.enum(CATEGORIES).optional(),
   paymentMethod: z.enum(PAYMENT_METHODS).optional(),
+  currency: z.enum(ASSET_CURRENCIES).optional().default("EUR"),
   source: z.enum(INCOME_SOURCES).optional(),
   date: dateYmd.optional(),
   budgetMonth: budgetMonthInput.optional(),

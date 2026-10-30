@@ -1,6 +1,6 @@
 import type { Expense, Income } from "@/lib/types";
 import { formatEuro } from "@/lib/format";
-import { isSalaryExpense } from "@/lib/swile-prime";
+import { isSalaryExpense, isSalaryIncome } from "@/lib/swile-prime";
 
 export type CashflowNodeKind =
   | "source"
@@ -34,7 +34,8 @@ export type CashflowModel = {
 const BUDGET_ID = "budget";
 
 /** Construit un modèle Sankey : sources → Budget → catégories CB + Cash (+ épargne / déficit).
- * Swile exclu : tickets resto CSE, pas le salaire. Cash (ATM) = salaire.
+ * Swile exclu des deux côtés : tickets resto CSE, pas le salaire ni de l’épargne.
+ * Cash (ATM) = salaire.
  */
 export function buildCashflowModel(
   incomes: Income[],
@@ -42,6 +43,7 @@ export function buildCashflowModel(
 ): CashflowModel {
   const sourceMap = new Map<string, number>();
   for (const income of incomes) {
+    if (!isSalaryIncome(income)) continue;
     const key = income.source || "Autres";
     sourceMap.set(key, (sourceMap.get(key) ?? 0) + Number(income.amount));
   }
