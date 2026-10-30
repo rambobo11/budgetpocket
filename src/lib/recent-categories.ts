@@ -45,19 +45,28 @@ export function rememberCategory(category: Category, limit = 5): Category[] {
   return next;
 }
 
-/** Priorité : catégories du mois (plus récentes d’abord), puis localStorage / défauts. */
+/** Priorité : plus utilisées ce mois, puis récentes, puis défauts. */
 export function buildRecentCategories(
   fromExpenses: { category: string }[],
   limit = 5
 ): Category[] {
   const seen = new Set<Category>();
   const ordered: Category[] = [];
+  const counts = new Map<Category, number>();
 
   for (const expense of fromExpenses) {
     if (!isCategory(expense.category)) continue;
-    if (seen.has(expense.category)) continue;
-    seen.add(expense.category);
-    ordered.push(expense.category);
+    counts.set(expense.category, (counts.get(expense.category) ?? 0) + 1);
+  }
+
+  const byUse = [...counts.entries()].sort((a, b) => {
+    if (b[1] !== a[1]) return b[1] - a[1];
+    return a[0].localeCompare(b[0], "fr");
+  });
+
+  for (const [category] of byUse) {
+    seen.add(category);
+    ordered.push(category);
     if (ordered.length >= limit) return ordered;
   }
 
