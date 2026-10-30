@@ -8,6 +8,7 @@ import {
   Bitcoin,
   CalendarClock,
   FileText,
+  Gauge,
   HandCoins,
   Landmark,
   MoreHorizontal,
@@ -25,6 +26,7 @@ const primaryLinks: {
   { href: "/", label: "Dépenses", icon: Receipt },
   { href: "/incomes", label: "Revenus", icon: Wallet },
   { href: "/dashboard", label: "Stats", icon: BarChart3 },
+  { href: "/limites", label: "Limites", icon: Gauge },
 ];
 
 const moreLinks: {

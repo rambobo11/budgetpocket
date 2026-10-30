@@ -1,15 +1,21 @@
 import { createClient } from "@/lib/supabase/server";
-import { unwrapList } from "@/lib/supabase/query";
+import {
+  isMissingRelationError,
+  unwrapList,
+} from "@/lib/supabase/query";
+import { EMPTY_BALANCES } from "@/lib/remaining";
 import { monthIsoBounds } from "@/lib/date";
 import { normalizeExpense } from "@/lib/expense-currency";
 import type {
   Asset,
+  CategoryLimit,
   Credit,
   CryptoTrade,
   Expense,
   Income,
   Subscription,
   Upcoming,
+  UserBalances,
 } from "@/lib/types";
 
 export async function getExpensesForMonth(month: Date): Promise<Expense[]> {
@@ -120,4 +126,47 @@ export async function getSubscriptions(): Promise<Subscription[]> {
       amount: Number((row as Subscription).amount),
     })
   );
+}
+
+function mapBalances(row: UserBalances): UserBalances {
+  return {
+    user_id: row.user_id,
+    bank_eur: row.bank_eur == null ? null : Number(row.bank_eur),
+    swile_eur: row.swile_eur == null ? null : Number(row.swile_eur),
+    updated_at: row.updated_at,
+  };
+}
+
+export async function getUserBalances(): Promise<UserBalances> {
+  const supabase = await createClient();
+  const result = await supabase.from("user_balances").select("*").maybeSingle();
+
+  if (result.error) {
+    if (isMissingRelationError(result.error)) return EMPTY_BALANCES;
+    throw new Error("Impossible de charger les soldes.");
+  }
+
+  if (!result.data) return EMPTY_BALANCES;
+  return mapBalances(result.data as UserBalances);
+}
+
+export async function getCategoryLimits(): Promise<CategoryLimit[]> {
+  const supabase = await createClient();
+  const result = await supabase
+    .from("category_limits")
+    .select("*")
+    .order("category", { ascending: true });
+
+  if (result.error) {
+    if (isMissingRelationError(result.error)) return [];
+    throw new Error("Impossible de charger les plafonds.");
+  }
+
+  return (result.data ?? []).map((row) => {
+    const item = row as CategoryLimit;
+    return {
+      ...item,
+      amount: Number(item.amount),
+    };
+  });
 }

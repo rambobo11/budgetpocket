@@ -9,8 +9,9 @@
 | `subscriptions.sql` | Abonnements récurrents (catalogue + totaux) |
 | `add-cash-payment-method.sql` | Ajoute `cash` aux moyens de paiement |
 | `add-expense-currency.sql` | Devise EUR / MAD sur les dépenses (saisie DH, stats en €) |
+| `add-balances-and-limits.sql` | Solde banque + carte Swile, plafonds par catégorie |
 | `add-*.sql` / `incomes.sql` / `assets.sql` | Migrations incrémentales si la base existait déjà |
 
 Ne ré-exécute pas les scripts `add-*` si `schema.sql` consolidé a déjà été appliqué.
 
-Vérifie toujours que **RLS est ON** sur `expenses`, `incomes`, `assets`, `credits`, `upcoming`, `crypto_trades`, `subscriptions`.
+Vérifie toujours que **RLS est ON** sur `expenses`, `incomes`, `assets`, `credits`, `upcoming`, `crypto_trades`, `subscriptions`, `user_balances`, `category_limits`.

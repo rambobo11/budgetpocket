@@ -11,12 +11,14 @@ import {
 import { formatEuro } from "@/lib/format";
 import { MAD_TO_EUR, toEuro } from "@/lib/expense-currency";
 import { parseDecimalInput } from "@/lib/number-input";
+import { limitForCategory, spentByCategory } from "@/lib/remaining";
 import {
   CATEGORIES,
   PAYMENT_METHODS,
   PAYMENT_METHOD_LABELS,
   type AssetCurrency,
   type Category,
+  type CategoryLimit,
   type Expense,
   type PaymentMethod,
 } from "@/lib/types";
@@ -34,12 +36,14 @@ import {
 type QuickAddFormProps = {
   selectedMonth: Date;
   expenses?: Expense[];
+  limits?: CategoryLimit[];
   onExpenseAdded: (expense: Expense) => void;
 };
 
 export function QuickAddForm({
   selectedMonth,
   expenses = [],
+  limits = [],
   onExpenseAdded,
 }: QuickAddFormProps) {
   const bounds = monthBounds(selectedMonth);
@@ -114,6 +118,20 @@ export function QuickAddForm({
     currency === "MAD" && Number.isFinite(parsedAmount) && parsedAmount > 0
       ? toEuro(parsedAmount, "MAD")
       : null;
+  const categoryLimit = limitForCategory(limits, category);
+  const categorySpent = category
+    ? (spentByCategory(expenses).get(category) ?? 0)
+    : 0;
+  const amountInEuro =
+    currency === "MAD"
+      ? previewEuro
+      : Number.isFinite(parsedAmount) && parsedAmount > 0
+        ? parsedAmount
+        : null;
+  const categoryNext =
+    categoryLimit && amountInEuro != null
+      ? categorySpent + amountInEuro
+      : categorySpent;
 
   return (
     <form
@@ -237,6 +255,20 @@ export function QuickAddForm({
               ))}
             </SelectContent>
           </Select>
+          {categoryLimit ? (
+            <p
+              className={`text-xs ${
+                categoryNext > categoryLimit.amount
+                  ? "text-rose-600 dark:text-rose-400"
+                  : "text-zinc-500 dark:text-zinc-400"
+              }`}
+            >
+              {formatEuro(categorySpent)} / {formatEuro(categoryLimit.amount)}
+              {amountInEuro != null
+                ? ` · après ajout ${formatEuro(categoryNext)}`
+                : ""}
+            </p>
+          ) : null}
         </div>
 
         {error ? (

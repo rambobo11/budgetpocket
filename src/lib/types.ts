@@ -177,6 +177,20 @@ export const SUBSCRIPTION_STATUSES = ["active", "paused", "cancelled"] as const;
 
 export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
 
+export type UserBalances = {
+  user_id: string;
+  bank_eur: number | null;
+  swile_eur: number | null;
+  updated_at: string;
+};
+
+export type CategoryLimit = {
+  id: string;
+  user_id: string;
+  category: Category;
+  amount: number;
+};
+
 export type Subscription = {
   id: string;
   user_id: string;
