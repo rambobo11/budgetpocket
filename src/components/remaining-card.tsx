@@ -142,7 +142,7 @@ export function RemainingCard({
 
     if (trimmed !== "") {
       const parsed = parseDecimalInput(trimmed);
-      if (!Number.isFinite(parsed) || parsed < 0) {
+      if (!Number.isFinite(parsed)) {
         setError("Montant invalide.");
         return;
       }
@@ -206,7 +206,13 @@ export function RemainingCard({
           <p className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
             Reste prévu · Swile
           </p>
-          <p className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900 tabular-nums dark:text-zinc-50">
+          <p
+            className={`mt-1 text-3xl font-semibold tracking-tight tabular-nums ${
+              swileShown >= 0
+                ? "text-zinc-900 dark:text-zinc-50"
+                : "text-rose-600 dark:text-rose-400"
+            }`}
+          >
             {mask(formatEuro(swileShown))}
           </p>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">

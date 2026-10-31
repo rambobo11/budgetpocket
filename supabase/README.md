@@ -11,6 +11,7 @@
 | `add-expense-currency.sql` | Devise EUR / MAD sur les dépenses (saisie DH, stats en €) |
 | `add-balances-and-limits.sql` | Solde banque + carte Swile, plafonds par catégorie |
 | `add-balance-month.sql` | Solde banque / Swile par mois (saisi au 1er) |
+| `add-balance-negative.sql` | Autorise un solde au 1er négatif |
 | `add-*.sql` / `incomes.sql` / `assets.sql` | Migrations incrémentales si la base existait déjà |
 
 Ne ré-exécute pas les scripts `add-*` si `schema.sql` consolidé a déjà été appliqué.

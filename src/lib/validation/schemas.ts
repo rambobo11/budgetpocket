@@ -249,17 +249,17 @@ export const updateSubscriptionStatusSchema = z.object({
   status: z.enum(SUBSCRIPTION_STATUSES),
 });
 
-const amountOptionalNonNegative = z
+const amountOptionalSigned = z
   .union([z.number(), z.string(), z.null()])
   .transform((value, ctx) => {
     if (value == null) return null;
     if (typeof value === "string" && value.trim() === "") return null;
     const n = parseDecimalInput(value);
-    if (!Number.isFinite(n) || n < 0) {
+    if (!Number.isFinite(n)) {
       ctx.addIssue({ code: "custom", message: "Montant invalide." });
       return z.NEVER;
     }
-    if (n > 1_000_000_000) {
+    if (Math.abs(n) > 1_000_000_000) {
       ctx.addIssue({ code: "custom", message: "Montant trop élevé." });
       return z.NEVER;
     }
@@ -268,8 +268,8 @@ const amountOptionalNonNegative = z
 
 export const upsertUserBalancesSchema = z.object({
   budgetMonth: budgetMonthInput,
-  bankEur: amountOptionalNonNegative.optional(),
-  swileEur: amountOptionalNonNegative.optional(),
+  bankEur: amountOptionalSigned.optional(),
+  swileEur: amountOptionalSigned.optional(),
 });
 
 export const upsertCategoryLimitSchema = z.object({
