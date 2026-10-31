@@ -179,6 +179,7 @@ export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
 
 export type UserBalances = {
   user_id: string;
+  budget_month: string;
   bank_eur: number | null;
   swile_eur: number | null;
   updated_at: string;

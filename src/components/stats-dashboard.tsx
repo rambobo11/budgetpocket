@@ -25,6 +25,7 @@ import type {
   UserBalances,
 } from "@/lib/types";
 import { canGoToNextMonth } from "@/lib/date";
+import { fetchUserBalances } from "@/lib/balances";
 import { fetchExpensesBetween, fetchExpensesForMonth } from "@/lib/expenses";
 import { fetchIncomesForMonth } from "@/lib/incomes";
 import {
@@ -54,6 +55,9 @@ type StatsDashboardProps = {
   initialExpenses: Expense[];
   initialIncomes: Income[];
   initialBalances: UserBalances;
+  initialPreviousExpenses: Expense[];
+  initialPreviousIncomes: Income[];
+  initialPreviousBalances: UserBalances;
   initialLimits: CategoryLimit[];
   initialMonthIso: string;
 };
@@ -62,6 +66,9 @@ export function StatsDashboard({
   initialExpenses,
   initialIncomes,
   initialBalances,
+  initialPreviousExpenses,
+  initialPreviousIncomes,
+  initialPreviousBalances,
   initialLimits,
   initialMonthIso,
 }: StatsDashboardProps) {
@@ -72,8 +79,16 @@ export function StatsDashboard({
   const [incomes, setIncomes] = useState<Income[]>(initialIncomes);
   const [historyExpenses, setHistoryExpenses] =
     useState<Expense[]>(initialExpenses);
-  const [previousExpenses, setPreviousExpenses] = useState<Expense[]>([]);
+  const [previousExpenses, setPreviousExpenses] = useState<Expense[]>(
+    initialPreviousExpenses
+  );
+  const [previousIncomes, setPreviousIncomes] = useState<Income[]>(
+    initialPreviousIncomes
+  );
   const [balances, setBalances] = useState<UserBalances>(initialBalances);
+  const [previousBalances, setPreviousBalances] = useState<UserBalances>(
+    initialPreviousBalances
+  );
   const [limits, setLimits] = useState<CategoryLimit[]>(initialLimits);
   const [isPending, startTransition] = useTransition();
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -82,6 +97,16 @@ export function StatsDashboard({
   useEffect(() => {
     setBalances(initialBalances);
   }, [initialBalances]);
+
+  useEffect(() => {
+    setPreviousExpenses(initialPreviousExpenses);
+    setPreviousIncomes(initialPreviousIncomes);
+    setPreviousBalances(initialPreviousBalances);
+  }, [
+    initialPreviousExpenses,
+    initialPreviousIncomes,
+    initialPreviousBalances,
+  ]);
 
   useEffect(() => {
     setLimits(initialLimits);
@@ -98,13 +123,24 @@ export function StatsDashboard({
         if (isSameMonth(selectedMonth, initial)) {
           setExpenses(initialExpenses);
           setIncomes(initialIncomes);
+          setBalances(initialBalances);
+          setPreviousExpenses(initialPreviousExpenses);
+          setPreviousIncomes(initialPreviousIncomes);
+          setPreviousBalances(initialPreviousBalances);
         } else {
-          const [monthExpenses, monthIncomes] = await Promise.all([
-            fetchExpensesForMonth(selectedMonth),
-            fetchIncomesForMonth(selectedMonth),
-          ]);
+          const [monthExpenses, monthIncomes, monthBalances, prevIncomes, prevBalances] =
+            await Promise.all([
+              fetchExpensesForMonth(selectedMonth),
+              fetchIncomesForMonth(selectedMonth),
+              fetchUserBalances(selectedMonth),
+              fetchIncomesForMonth(previousMonth),
+              fetchUserBalances(previousMonth),
+            ]);
           setExpenses(monthExpenses);
           setIncomes(monthIncomes);
+          setBalances(monthBalances);
+          setPreviousIncomes(prevIncomes);
+          setPreviousBalances(prevBalances);
         }
 
         const history = await fetchExpensesBetween(
@@ -125,7 +161,16 @@ export function StatsDashboard({
         setLoadError(QUERY_LOAD_ERROR);
       }
     });
-  }, [selectedMonth, initialExpenses, initialIncomes, initialMonthIso]);
+  }, [
+    selectedMonth,
+    initialExpenses,
+    initialIncomes,
+    initialBalances,
+    initialPreviousExpenses,
+    initialPreviousIncomes,
+    initialPreviousBalances,
+    initialMonthIso,
+  ]);
 
   const kpis = computeMonthKpis(expenses);
   const previousKpis = computeMonthKpis(previousExpenses);
@@ -183,9 +228,14 @@ export function StatsDashboard({
         className={`flex flex-col gap-4 transition-opacity md:gap-6 ${isPending ? "opacity-60" : "opacity-100"}`}
       >
         <RemainingCard
+          key={selectedKey}
+          month={selectedMonth}
           expenses={expenses}
           incomes={incomes}
           balances={balances}
+          previousExpenses={previousExpenses}
+          previousIncomes={previousIncomes}
+          previousBalances={previousBalances}
           limits={limits}
           onBalancesChange={setBalances}
         />

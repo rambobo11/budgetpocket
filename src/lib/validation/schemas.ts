@@ -267,6 +267,7 @@ const amountOptionalNonNegative = z
   });
 
 export const upsertUserBalancesSchema = z.object({
+  budgetMonth: budgetMonthInput,
   bankEur: amountOptionalNonNegative.optional(),
   swileEur: amountOptionalNonNegative.optional(),
 });

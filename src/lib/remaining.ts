@@ -5,17 +5,25 @@ import type {
   Income,
   UserBalances,
 } from "@/lib/types";
-
-export const EMPTY_BALANCES: UserBalances = {
-  user_id: "",
-  bank_eur: null,
-  swile_eur: null,
-  updated_at: "",
-};
+import { budgetMonthKey } from "@/lib/incomes";
 import {
   sumSalaryExpenses,
   sumSalaryIncomes,
 } from "@/lib/swile-prime";
+
+export function emptyBalancesForMonth(month: Date): UserBalances {
+  return {
+    user_id: "",
+    budget_month: budgetMonthKey(month),
+    bank_eur: null,
+    swile_eur: null,
+    updated_at: "",
+  };
+}
+
+export const EMPTY_BALANCES: UserBalances = emptyBalancesForMonth(
+  new Date(0)
+);
 
 export function sumSwileIncomes(incomes: Income[]): number {
   return incomes.reduce((sum, income) => {
@@ -74,4 +82,23 @@ export function computeMonthRemaining(
     swileOut,
     swileMonthLeft: swileIn - swileOut,
   };
+}
+
+/** Solde de fin prévu = ouverture du 1er + flux du mois. */
+export function expectedClosing(
+  opening: number | null,
+  inflow: number,
+  outflow: number
+): number | null {
+  if (opening == null) return null;
+  return opening + inflow - outflow;
+}
+
+/** Début réel du mois − reste prévu du mois précédent. */
+export function openingGap(
+  actualOpening: number | null,
+  previousExpected: number | null
+): number | null {
+  if (actualOpening == null || previousExpected == null) return null;
+  return actualOpening - previousExpected;
 }

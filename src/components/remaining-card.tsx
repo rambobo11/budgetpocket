@@ -1,15 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { format, subMonths } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Loader2 } from "lucide-react";
 import { upsertUserBalancesAction } from "@/app/actions/balances";
 import { usePrivacy } from "@/components/privacy-provider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatEuro } from "@/lib/format";
+import { budgetMonthInputValue } from "@/lib/incomes";
+import { formatSignedEuro } from "@/lib/kpis";
 import { parseDecimalInput } from "@/lib/number-input";
 import {
   computeMonthRemaining,
+  expectedClosing,
+  openingGap,
   spentByCategory,
 } from "@/lib/remaining";
 import type {
@@ -20,9 +26,13 @@ import type {
 } from "@/lib/types";
 
 type RemainingCardProps = {
+  month: Date;
   expenses: Expense[];
   incomes: Income[];
   balances: UserBalances;
+  previousExpenses: Expense[];
+  previousIncomes: Income[];
+  previousBalances: UserBalances;
   limits: CategoryLimit[];
   onBalancesChange: (balances: UserBalances) => void;
 };
@@ -32,15 +42,48 @@ function formatBalanceInput(value: number | null): string {
   return value.toFixed(2).replace(".", ",");
 }
 
+function GapLine({
+  gap,
+  previousLabel,
+  mask,
+}: {
+  gap: number | null;
+  previousLabel: string;
+  mask: (value: string) => string;
+}) {
+  if (gap == null || Math.abs(gap) < 1) return null;
+
+  return (
+    <p
+      className={`mt-2 text-xs ${
+        gap < 0
+          ? "text-rose-600 dark:text-rose-400"
+          : "text-emerald-700 dark:text-emerald-400"
+      }`}
+    >
+      {mask(formatSignedEuro(gap))} vs prévu {previousLabel}
+      {gap < 0 ? " — un truc a pu passer" : " — plus que prévu"}
+    </p>
+  );
+}
+
 export function RemainingCard({
+  month,
   expenses,
   incomes,
   balances,
+  previousExpenses,
+  previousIncomes,
+  previousBalances,
   limits,
   onBalancesChange,
 }: RemainingCardProps) {
   const { mask } = usePrivacy();
   const remaining = computeMonthRemaining(incomes, expenses);
+  const previousRemaining = computeMonthRemaining(
+    previousIncomes,
+    previousExpenses
+  );
   const spent = spentByCategory(expenses);
   const capped = limits
     .map((limit) => ({
@@ -49,8 +92,34 @@ export function RemainingCard({
     }))
     .sort((a, b) => b.spent / b.amount - a.spent / a.amount);
 
-  const swileLeft =
-    balances.swile_eur != null ? balances.swile_eur : remaining.swileMonthLeft;
+  const bankExpected = expectedClosing(
+    balances.bank_eur,
+    remaining.salaryIn,
+    remaining.salaryOut
+  );
+  const swileExpected = expectedClosing(
+    balances.swile_eur,
+    remaining.swileIn,
+    remaining.swileOut
+  );
+  const previousBankExpected = expectedClosing(
+    previousBalances.bank_eur,
+    previousRemaining.salaryIn,
+    previousRemaining.salaryOut
+  );
+  const previousSwileExpected = expectedClosing(
+    previousBalances.swile_eur,
+    previousRemaining.swileIn,
+    previousRemaining.swileOut
+  );
+  const bankGap = openingGap(balances.bank_eur, previousBankExpected);
+  const swileGap = openingGap(balances.swile_eur, previousSwileExpected);
+
+  const bankShown = bankExpected ?? remaining.salaryLeft;
+  const swileShown = swileExpected ?? remaining.swileMonthLeft;
+  const previousMonthLabel = format(subMonths(month, 1), "MMMM", {
+    locale: fr,
+  });
 
   const [bankInput, setBankInput] = useState(() =>
     formatBalanceInput(balances.bank_eur)
@@ -64,7 +133,7 @@ export function RemainingCard({
   useEffect(() => {
     setBankInput(formatBalanceInput(balances.bank_eur));
     setSwileInput(formatBalanceInput(balances.swile_eur));
-  }, [balances.bank_eur, balances.swile_eur]);
+  }, [balances.bank_eur, balances.swile_eur, balances.budget_month]);
 
   async function saveField(field: "bank" | "swile", raw: string) {
     setError(null);
@@ -84,9 +153,10 @@ export function RemainingCard({
     if (current === value) return;
 
     setSaving(field);
-    const result = await upsertUserBalancesAction(
-      field === "bank" ? { bankEur: value } : { swileEur: value }
-    );
+    const result = await upsertUserBalancesAction({
+      budgetMonth: budgetMonthInputValue(month),
+      ...(field === "bank" ? { bankEur: value } : { swileEur: value }),
+    });
     setSaving(null);
 
     if (!result.ok) {
@@ -97,52 +167,63 @@ export function RemainingCard({
     onBalancesChange(result.data);
   }
 
-  const salaryPositive = remaining.salaryLeft >= 0;
+  const bankPositive = bankShown >= 0;
 
   return (
     <section className="rounded-[1.75rem] border border-zinc-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.04)] dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-none sm:p-6">
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <p className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
-            Reste ce mois
+            Reste prévu · banque
           </p>
           <p
             className={`mt-1 text-3xl font-semibold tracking-tight tabular-nums ${
-              salaryPositive
+              bankPositive
                 ? "text-zinc-900 dark:text-zinc-50"
                 : "text-rose-600 dark:text-rose-400"
             }`}
           >
-            {mask(formatEuro(remaining.salaryLeft))}
+            {mask(formatEuro(bankShown))}
           </p>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {mask(formatEuro(remaining.salaryIn))} hors Swile −{" "}
-            {mask(formatEuro(remaining.salaryOut))} CB/cash
+            {balances.bank_eur != null
+              ? `${mask(formatEuro(balances.bank_eur))} au 1er + ${mask(formatEuro(remaining.salaryIn))} − ${mask(formatEuro(remaining.salaryOut))} CB/cash`
+              : `${mask(formatEuro(remaining.salaryIn))} hors Swile − ${mask(formatEuro(remaining.salaryOut))} CB/cash`}
           </p>
-          {remaining.salaryIn === 0 ? (
+          {balances.bank_eur == null ? (
             <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-              Ajoute salaire / CAF dans Revenus pour que le reste soit juste.
+              Mets le solde au 1er du mois pour coller au compte.
             </p>
           ) : null}
+          <GapLine
+            gap={bankGap}
+            previousLabel={previousMonthLabel}
+            mask={mask}
+          />
         </div>
 
         <div>
           <p className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
-            Il reste sur Swile
+            Reste prévu · Swile
           </p>
           <p className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900 tabular-nums dark:text-zinc-50">
-            {mask(formatEuro(swileLeft))}
+            {mask(formatEuro(swileShown))}
           </p>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Reçu {mask(formatEuro(remaining.swileIn))} · dépensé{" "}
-            {mask(formatEuro(remaining.swileOut))}
+            {balances.swile_eur != null
+              ? `${mask(formatEuro(balances.swile_eur))} au 1er + ${mask(formatEuro(remaining.swileIn))} − ${mask(formatEuro(remaining.swileOut))}`
+              : `Reçu ${mask(formatEuro(remaining.swileIn))} · dépensé ${mask(formatEuro(remaining.swileOut))}`}
           </p>
-          {remaining.swileIn === 0 ? (
+          {balances.swile_eur == null ? (
             <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-              Ajoute le Swile du mois dans Revenus, et le solde de la carte
-              ci-dessous.
+              Mets le solde Swile au 1er, et le Swile du mois dans Revenus.
             </p>
           ) : null}
+          <GapLine
+            gap={swileGap}
+            previousLabel={previousMonthLabel}
+            mask={mask}
+          />
         </div>
       </div>
 
@@ -152,7 +233,7 @@ export function RemainingCard({
             htmlFor="bank-balance"
             className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400"
           >
-            Compte bancaire
+            Banque au 1er
           </Label>
           <div className="relative">
             <Input
@@ -168,7 +249,7 @@ export function RemainingCard({
                   e.currentTarget.blur();
                 }
               }}
-              placeholder="Solde actuel"
+              placeholder="Ce qu’il restait"
               className="h-12 rounded-xl border-zinc-200 bg-zinc-50/80 pr-10 text-base tabular-nums shadow-none dark:border-zinc-700 dark:bg-zinc-950/60"
             />
             <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-zinc-400">
@@ -186,7 +267,7 @@ export function RemainingCard({
             htmlFor="swile-balance"
             className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400"
           >
-            Sur la carte Swile
+            Swile au 1er
           </Label>
           <div className="relative">
             <Input
@@ -202,7 +283,7 @@ export function RemainingCard({
                   e.currentTarget.blur();
                 }
               }}
-              placeholder="Ce qu’il y a sur Swile"
+              placeholder="Ce qu’il y avait"
               className="h-12 rounded-xl border-zinc-200 bg-zinc-50/80 pr-10 text-base tabular-nums shadow-none dark:border-zinc-700 dark:bg-zinc-950/60"
             />
             <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-zinc-400">

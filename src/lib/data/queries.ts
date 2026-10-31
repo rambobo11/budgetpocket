@@ -3,7 +3,8 @@ import {
   isMissingRelationError,
   unwrapList,
 } from "@/lib/supabase/query";
-import { EMPTY_BALANCES } from "@/lib/remaining";
+import { emptyBalancesForMonth } from "@/lib/remaining";
+import { budgetMonthKey } from "@/lib/incomes";
 import { monthIsoBounds } from "@/lib/date";
 import { normalizeExpense } from "@/lib/expense-currency";
 import type {
@@ -131,22 +132,30 @@ export async function getSubscriptions(): Promise<Subscription[]> {
 function mapBalances(row: UserBalances): UserBalances {
   return {
     user_id: row.user_id,
+    budget_month: String(row.budget_month).slice(0, 10),
     bank_eur: row.bank_eur == null ? null : Number(row.bank_eur),
     swile_eur: row.swile_eur == null ? null : Number(row.swile_eur),
     updated_at: row.updated_at,
   };
 }
 
-export async function getUserBalances(): Promise<UserBalances> {
+export async function getUserBalances(month: Date): Promise<UserBalances> {
   const supabase = await createClient();
-  const result = await supabase.from("user_balances").select("*").maybeSingle();
+  const key = budgetMonthKey(month);
+  const result = await supabase
+    .from("user_balances")
+    .select("*")
+    .eq("budget_month", key)
+    .maybeSingle();
 
   if (result.error) {
-    if (isMissingRelationError(result.error)) return EMPTY_BALANCES;
+    if (isMissingRelationError(result.error)) {
+      return emptyBalancesForMonth(month);
+    }
     throw new Error("Impossible de charger les soldes.");
   }
 
-  if (!result.data) return EMPTY_BALANCES;
+  if (!result.data) return emptyBalancesForMonth(month);
   return mapBalances(result.data as UserBalances);
 }
 

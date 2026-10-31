@@ -323,10 +323,12 @@ create policy "Users can delete own subscriptions"
 -- USER BALANCES (solde banque + carte Swile)
 -- ═══════════════════════════════════════════
 create table if not exists public.user_balances (
-  user_id uuid primary key references auth.users (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  budget_month date not null,
   bank_eur numeric(12, 2) check (bank_eur is null or bank_eur >= 0),
   swile_eur numeric(12, 2) check (swile_eur is null or swile_eur >= 0),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  primary key (user_id, budget_month)
 );
 
 alter table public.user_balances enable row level security;

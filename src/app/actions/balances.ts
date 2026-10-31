@@ -18,6 +18,7 @@ function mapAuthError(error: unknown): ActionResult<never> {
 function mapBalances(row: UserBalances): UserBalances {
   return {
     user_id: row.user_id,
+    budget_month: String(row.budget_month).slice(0, 10),
     bank_eur: row.bank_eur == null ? null : Number(row.bank_eur),
     swile_eur: row.swile_eur == null ? null : Number(row.swile_eur),
     updated_at: row.updated_at,
@@ -42,10 +43,13 @@ export async function upsertUserBalancesAction(
       return fail("Trop de requêtes. Réessaie dans un instant.");
     }
 
+    const monthKey = `${parsed.data.budgetMonth}-01`;
+
     const { data: existing, error: loadError } = await supabase
       .from("user_balances")
       .select("*")
       .eq("user_id", user.id)
+      .eq("budget_month", monthKey)
       .maybeSingle();
 
     if (loadError) {
@@ -64,19 +68,25 @@ export async function upsertUserBalancesAction(
         : parsed.data.swileEur;
     const now = new Date().toISOString();
 
-    const { data, error } = await supabase
-      .from("user_balances")
-      .upsert(
-        {
+    const query = current
+      ? supabase
+          .from("user_balances")
+          .update({
+            bank_eur: nextBank,
+            swile_eur: nextSwile,
+            updated_at: now,
+          })
+          .eq("user_id", user.id)
+          .eq("budget_month", monthKey)
+      : supabase.from("user_balances").insert({
           user_id: user.id,
+          budget_month: monthKey,
           bank_eur: nextBank,
           swile_eur: nextSwile,
           updated_at: now,
-        },
-        { onConflict: "user_id" }
-      )
-      .select()
-      .single();
+        });
+
+    const { data, error } = await query.select().single();
 
     if (error || !data) {
       if (isMissingRelationError(error)) return fail(BALANCES_SQL_HINT);

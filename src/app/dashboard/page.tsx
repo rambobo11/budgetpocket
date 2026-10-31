@@ -1,3 +1,4 @@
+import { subMonths } from "date-fns";
 import { currentMonthStart } from "@/lib/date";
 import {
   getCategoryLimits,
@@ -12,10 +13,22 @@ import { StatsDashboard } from "@/components/stats-dashboard";
 export default async function DashboardPage() {
   await requireUserOrRedirect();
   const month = currentMonthStart();
-  const [expenses, incomes, balances, limits] = await Promise.all([
+  const previousMonth = subMonths(month, 1);
+  const [
+    expenses,
+    incomes,
+    balances,
+    previousExpenses,
+    previousIncomes,
+    previousBalances,
+    limits,
+  ] = await Promise.all([
     getExpensesForMonth(month),
     getIncomesForBudgetMonth(budgetMonthKey(month)),
-    getUserBalances(),
+    getUserBalances(month),
+    getExpensesForMonth(previousMonth),
+    getIncomesForBudgetMonth(budgetMonthKey(previousMonth)),
+    getUserBalances(previousMonth),
     getCategoryLimits(),
   ]);
 
@@ -24,6 +37,9 @@ export default async function DashboardPage() {
       initialExpenses={expenses}
       initialIncomes={incomes}
       initialBalances={balances}
+      initialPreviousExpenses={previousExpenses}
+      initialPreviousIncomes={previousIncomes}
+      initialPreviousBalances={previousBalances}
       initialLimits={limits}
       initialMonthIso={month.toISOString()}
     />
