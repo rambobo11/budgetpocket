@@ -42,6 +42,18 @@ function formatBalanceInput(value: number | null): string {
   return value.toFixed(2).replace(".", ",");
 }
 
+function toggleSignedInput(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "-";
+  if (/^[\u2212\u2010\u2011\u2012\u2013\u2014\uFE63\uFF0D-]/.test(trimmed)) {
+    return trimmed.replace(
+      /^[\u2212\u2010\u2011\u2012\u2013\u2014\uFE63\uFF0D-]+/,
+      ""
+    );
+  }
+  return `-${trimmed}`;
+}
+
 function GapLine({
   gap,
   previousLabel,
@@ -241,30 +253,44 @@ export function RemainingCard({
           >
             Banque au 1er
           </Label>
-          <div className="relative">
-            <Input
-              id="bank-balance"
-              type="text"
-              inputMode="decimal"
-              autoComplete="off"
-              value={bankInput}
-              onChange={(e) => setBankInput(e.target.value)}
-              onBlur={() => void saveField("bank", bankInput)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.currentTarget.blur();
-                }
+          <div className="flex gap-2">
+            <button
+              type="button"
+              aria-label="Passer en négatif"
+              onClick={() => {
+                const next = toggleSignedInput(bankInput);
+                setBankInput(next);
+                void saveField("bank", next);
               }}
-              placeholder="Ce qu’il restait"
-              className="h-12 rounded-xl border-zinc-200 bg-zinc-50/80 pr-10 text-base tabular-nums shadow-none dark:border-zinc-700 dark:bg-zinc-950/60"
-            />
-            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-zinc-400">
-              {saving === "bank" ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                "€"
-              )}
-            </span>
+              className="h-12 w-12 shrink-0 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
+            >
+              +/−
+            </button>
+            <div className="relative min-w-0 flex-1">
+              <Input
+                id="bank-balance"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                value={bankInput}
+                onChange={(e) => setBankInput(e.target.value)}
+                onBlur={() => void saveField("bank", bankInput)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.currentTarget.blur();
+                  }
+                }}
+                placeholder="Ce qu’il restait"
+                className="h-12 rounded-xl border-zinc-200 bg-zinc-50/80 pr-10 text-base tabular-nums shadow-none dark:border-zinc-700 dark:bg-zinc-950/60"
+              />
+              <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-zinc-400">
+                {saving === "bank" ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  "€"
+                )}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -275,30 +301,44 @@ export function RemainingCard({
           >
             Swile au 1er
           </Label>
-          <div className="relative">
-            <Input
-              id="swile-balance"
-              type="text"
-              inputMode="decimal"
-              autoComplete="off"
-              value={swileInput}
-              onChange={(e) => setSwileInput(e.target.value)}
-              onBlur={() => void saveField("swile", swileInput)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.currentTarget.blur();
-                }
+          <div className="flex gap-2">
+            <button
+              type="button"
+              aria-label="Passer en négatif"
+              onClick={() => {
+                const next = toggleSignedInput(swileInput);
+                setSwileInput(next);
+                void saveField("swile", next);
               }}
-              placeholder="Ce qu’il y avait"
-              className="h-12 rounded-xl border-zinc-200 bg-zinc-50/80 pr-10 text-base tabular-nums shadow-none dark:border-zinc-700 dark:bg-zinc-950/60"
-            />
-            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-zinc-400">
-              {saving === "swile" ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                "€"
-              )}
-            </span>
+              className="h-12 w-12 shrink-0 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
+            >
+              +/−
+            </button>
+            <div className="relative min-w-0 flex-1">
+              <Input
+                id="swile-balance"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                value={swileInput}
+                onChange={(e) => setSwileInput(e.target.value)}
+                onBlur={() => void saveField("swile", swileInput)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.currentTarget.blur();
+                  }
+                }}
+                placeholder="Ce qu’il y avait"
+                className="h-12 rounded-xl border-zinc-200 bg-zinc-50/80 pr-10 text-base tabular-nums shadow-none dark:border-zinc-700 dark:bg-zinc-950/60"
+              />
+              <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-zinc-400">
+                {saving === "swile" ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  "€"
+                )}
+              </span>
+            </div>
           </div>
         </div>
       </div>

@@ -1,11 +1,14 @@
 /**
  * Parse un montant saisi (clavier FR iOS : virgule comme décimale).
- * Accepte "12,5", "12.5", "1 234,56", "1.234,56".
+ * Accepte "12,5", "12.5", "1 234,56", "1.234,56", et le minus iOS (−).
  */
 export function parseDecimalInput(value: string | number): number {
   if (typeof value === "number") return value;
 
-  let s = value.trim().replace(/[\s\u00a0]/g, "");
+  let s = value
+    .trim()
+    .replace(/[\s\u00a0]/g, "")
+    .replace(/[\u2212\u2010\u2011\u2012\u2013\u2014\uFE63\uFF0D]/g, "-");
   if (!s) return Number.NaN;
 
   const hasComma = s.includes(",");
