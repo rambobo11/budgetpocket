@@ -90,7 +90,17 @@ export async function upsertUserBalancesAction(
 
     if (error || !data) {
       if (isMissingRelationError(error)) return fail(BALANCES_SQL_HINT);
-      return fail("Impossible d’enregistrer le solde.");
+      const message = (error?.message ?? "").toLowerCase();
+      if (error?.code === "23514" || message.includes("check constraint")) {
+        return fail(
+          "Le solde négatif n’est pas encore autorisé. Exécute supabase/add-balance-negative.sql dans Supabase."
+        );
+      }
+      return fail(
+        error?.message
+          ? `Impossible d’enregistrer le solde. ${error.message}`
+          : "Impossible d’enregistrer le solde."
+      );
     }
 
     return ok(mapBalances(data as UserBalances));
