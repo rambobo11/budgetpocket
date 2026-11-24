@@ -130,7 +130,6 @@ export function RemainingCard({
   const bankShown = bankExpected ?? remaining.salaryLeft;
   const swileShown =
     balances.swile_now_eur ?? swileExpected ?? remaining.swileMonthLeft;
-  const swileCardGap = openingGap(balances.swile_now_eur, swileExpected);
   const previousMonthLabel = format(subMonths(month, 1), "MMMM", {
     locale: fr,
   });
@@ -264,19 +263,13 @@ export function RemainingCard({
               Mets le solde Swile au 1er, et le Swile du mois dans Revenus.
             </p>
           ) : null}
-          {balances.swile_now_eur != null ? (
-            <GapLine
-              gap={swileCardGap}
-              previousLabel="dans l’app"
-              mask={mask}
-            />
-          ) : (
+          {balances.swile_now_eur == null ? (
             <GapLine
               gap={swileGap}
               previousLabel={previousMonthLabel}
               mask={mask}
             />
-          )}
+          ) : null}
         </div>
       </div>
 
