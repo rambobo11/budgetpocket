@@ -182,6 +182,7 @@ export type UserBalances = {
   budget_month: string;
   bank_eur: number | null;
   swile_eur: number | null;
+  swile_now_eur: number | null;
   updated_at: string;
 };
 

@@ -135,6 +135,8 @@ function mapBalances(row: UserBalances): UserBalances {
     budget_month: String(row.budget_month).slice(0, 10),
     bank_eur: row.bank_eur == null ? null : Number(row.bank_eur),
     swile_eur: row.swile_eur == null ? null : Number(row.swile_eur),
+    swile_now_eur:
+      row.swile_now_eur == null ? null : Number(row.swile_now_eur),
     updated_at: row.updated_at,
   };
 }

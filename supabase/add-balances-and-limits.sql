@@ -6,6 +6,7 @@ create table if not exists public.user_balances (
   budget_month date not null,
   bank_eur numeric(12, 2),
   swile_eur numeric(12, 2),
+  swile_now_eur numeric(12, 2),
   updated_at timestamptz not null default now(),
   primary key (user_id, budget_month)
 );

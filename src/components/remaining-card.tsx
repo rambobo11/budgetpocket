@@ -128,7 +128,9 @@ export function RemainingCard({
   const swileGap = openingGap(balances.swile_eur, previousSwileExpected);
 
   const bankShown = bankExpected ?? remaining.salaryLeft;
-  const swileShown = swileExpected ?? remaining.swileMonthLeft;
+  const swileShown =
+    balances.swile_now_eur ?? swileExpected ?? remaining.swileMonthLeft;
+  const swileCardGap = openingGap(balances.swile_now_eur, swileExpected);
   const previousMonthLabel = format(subMonths(month, 1), "MMMM", {
     locale: fr,
   });
@@ -139,15 +141,29 @@ export function RemainingCard({
   const [swileInput, setSwileInput] = useState(() =>
     formatBalanceInput(balances.swile_eur)
   );
-  const [saving, setSaving] = useState<"bank" | "swile" | null>(null);
+  const [swileNowInput, setSwileNowInput] = useState(() =>
+    formatBalanceInput(balances.swile_now_eur)
+  );
+  const [saving, setSaving] = useState<"bank" | "swile" | "swileNow" | null>(
+    null
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setBankInput(formatBalanceInput(balances.bank_eur));
     setSwileInput(formatBalanceInput(balances.swile_eur));
-  }, [balances.bank_eur, balances.swile_eur, balances.budget_month]);
+    setSwileNowInput(formatBalanceInput(balances.swile_now_eur));
+  }, [
+    balances.bank_eur,
+    balances.swile_eur,
+    balances.swile_now_eur,
+    balances.budget_month,
+  ]);
 
-  async function saveField(field: "bank" | "swile", raw: string) {
+  async function saveField(
+    field: "bank" | "swile" | "swileNow",
+    raw: string
+  ) {
     setError(null);
     const trimmed = raw.trim();
     let value: number | null = null;
@@ -161,13 +177,22 @@ export function RemainingCard({
       value = parsed;
     }
 
-    const current = field === "bank" ? balances.bank_eur : balances.swile_eur;
+    const current =
+      field === "bank"
+        ? balances.bank_eur
+        : field === "swile"
+          ? balances.swile_eur
+          : balances.swile_now_eur;
     if (current === value) return;
 
     setSaving(field);
     const result = await upsertUserBalancesAction({
       budgetMonth: budgetMonthInputValue(month),
-      ...(field === "bank" ? { bankEur: value } : { swileEur: value }),
+      ...(field === "bank"
+        ? { bankEur: value }
+        : field === "swile"
+          ? { swileEur: value }
+          : { swileNowEur: value }),
     });
     setSaving(null);
 
@@ -216,7 +241,9 @@ export function RemainingCard({
 
         <div>
           <p className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400">
-            Reste prévu · Swile
+            {balances.swile_now_eur != null
+              ? "Swile · carte"
+              : "Reste prévu · Swile"}
           </p>
           <p
             className={`mt-1 text-3xl font-semibold tracking-tight tabular-nums ${
@@ -232,16 +259,24 @@ export function RemainingCard({
               ? `${mask(formatEuro(balances.swile_eur))} au 1er + ${mask(formatEuro(remaining.swileIn))} − ${mask(formatEuro(remaining.swileOut))}`
               : `Reçu ${mask(formatEuro(remaining.swileIn))} · dépensé ${mask(formatEuro(remaining.swileOut))}`}
           </p>
-          {balances.swile_eur == null ? (
+          {balances.swile_eur == null && balances.swile_now_eur == null ? (
             <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
               Mets le solde Swile au 1er, et le Swile du mois dans Revenus.
             </p>
           ) : null}
-          <GapLine
-            gap={swileGap}
-            previousLabel={previousMonthLabel}
-            mask={mask}
-          />
+          {balances.swile_now_eur != null ? (
+            <GapLine
+              gap={swileCardGap}
+              previousLabel="dans l’app"
+              mask={mask}
+            />
+          ) : (
+            <GapLine
+              gap={swileGap}
+              previousLabel={previousMonthLabel}
+              mask={mask}
+            />
+          )}
         </div>
       </div>
 
@@ -294,45 +329,80 @@ export function RemainingCard({
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Label
-            htmlFor="swile-balance"
-            className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400"
-          >
-            Swile au 1er
-          </Label>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              aria-label="Passer en négatif"
-              onClick={() => {
-                const next = toggleSignedInput(swileInput);
-                setSwileInput(next);
-                void saveField("swile", next);
-              }}
-              className="h-12 w-12 shrink-0 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label
+              htmlFor="swile-balance"
+              className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400"
             >
-              +/−
-            </button>
-            <div className="relative min-w-0 flex-1">
+              Swile au 1er
+            </Label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                aria-label="Passer en négatif"
+                onClick={() => {
+                  const next = toggleSignedInput(swileInput);
+                  setSwileInput(next);
+                  void saveField("swile", next);
+                }}
+                className="h-12 w-12 shrink-0 rounded-xl border border-zinc-200 text-sm font-semibold text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
+              >
+                +/−
+              </button>
+              <div className="relative min-w-0 flex-1">
+                <Input
+                  id="swile-balance"
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={swileInput}
+                  onChange={(e) => setSwileInput(e.target.value)}
+                  onBlur={() => void saveField("swile", swileInput)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  placeholder="Ce qu’il y avait"
+                  className="h-12 rounded-xl border-zinc-200 bg-zinc-50/80 pr-10 text-base tabular-nums shadow-none dark:border-zinc-700 dark:bg-zinc-950/60"
+                />
+                <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-zinc-400">
+                  {saving === "swile" ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    "€"
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label
+              htmlFor="swile-now"
+              className="text-[13px] font-medium tracking-wide text-zinc-500 uppercase dark:text-zinc-400"
+            >
+              Swile maintenant
+            </Label>
+            <div className="relative">
               <Input
-                id="swile-balance"
+                id="swile-now"
                 type="text"
                 inputMode="decimal"
                 autoComplete="off"
-                value={swileInput}
-                onChange={(e) => setSwileInput(e.target.value)}
-                onBlur={() => void saveField("swile", swileInput)}
+                value={swileNowInput}
+                onChange={(e) => setSwileNowInput(e.target.value)}
+                onBlur={() => void saveField("swileNow", swileNowInput)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.currentTarget.blur();
                   }
                 }}
-                placeholder="Ce qu’il y avait"
+                placeholder="Sur la carte"
                 className="h-12 rounded-xl border-zinc-200 bg-zinc-50/80 pr-10 text-base tabular-nums shadow-none dark:border-zinc-700 dark:bg-zinc-950/60"
               />
               <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-zinc-400">
-                {saving === "swile" ? (
+                {saving === "swileNow" ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
                   "€"

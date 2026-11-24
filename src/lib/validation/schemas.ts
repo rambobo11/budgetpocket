@@ -270,6 +270,7 @@ export const upsertUserBalancesSchema = z.object({
   budgetMonth: budgetMonthInput,
   bankEur: amountOptionalSigned.optional(),
   swileEur: amountOptionalSigned.optional(),
+  swileNowEur: amountOptionalSigned.optional(),
 });
 
 export const upsertCategoryLimitSchema = z.object({

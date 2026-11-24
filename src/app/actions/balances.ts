@@ -21,6 +21,8 @@ function mapBalances(row: UserBalances): UserBalances {
     budget_month: String(row.budget_month).slice(0, 10),
     bank_eur: row.bank_eur == null ? null : Number(row.bank_eur),
     swile_eur: row.swile_eur == null ? null : Number(row.swile_eur),
+    swile_now_eur:
+      row.swile_now_eur == null ? null : Number(row.swile_now_eur),
     updated_at: row.updated_at,
   };
 }
@@ -66,6 +68,10 @@ export async function upsertUserBalancesAction(
       parsed.data.swileEur === undefined
         ? (current?.swile_eur ?? null)
         : parsed.data.swileEur;
+    const nextSwileNow =
+      parsed.data.swileNowEur === undefined
+        ? (current?.swile_now_eur ?? null)
+        : parsed.data.swileNowEur;
     const now = new Date().toISOString();
 
     const query = current
@@ -74,6 +80,7 @@ export async function upsertUserBalancesAction(
           .update({
             bank_eur: nextBank,
             swile_eur: nextSwile,
+            swile_now_eur: nextSwileNow,
             updated_at: now,
           })
           .eq("user_id", user.id)
@@ -83,6 +90,7 @@ export async function upsertUserBalancesAction(
           budget_month: monthKey,
           bank_eur: nextBank,
           swile_eur: nextSwile,
+          swile_now_eur: nextSwileNow,
           updated_at: now,
         });
 
@@ -94,6 +102,11 @@ export async function upsertUserBalancesAction(
       if (error?.code === "23514" || message.includes("check constraint")) {
         return fail(
           "Le solde négatif n’est pas encore autorisé. Exécute supabase/add-balance-negative.sql dans Supabase."
+        );
+      }
+      if (message.includes("swile_now_eur")) {
+        return fail(
+          "Colonne manquante. Exécute supabase/add-swile-now.sql dans Supabase."
         );
       }
       return fail(

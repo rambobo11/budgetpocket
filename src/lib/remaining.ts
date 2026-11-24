@@ -17,6 +17,7 @@ export function emptyBalancesForMonth(month: Date): UserBalances {
     budget_month: budgetMonthKey(month),
     bank_eur: null,
     swile_eur: null,
+    swile_now_eur: null,
     updated_at: "",
   };
 }
