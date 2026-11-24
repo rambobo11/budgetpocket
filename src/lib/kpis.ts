@@ -60,6 +60,8 @@ export type ExpenseInsights = {
   cashSharePercent: number | null;
   /** Projection fin de mois (mois courant uniquement). */
   projectedTotal: number | null;
+  /** Loyer déjà payé : compté une fois, pas dans le rythme journalier. */
+  projectedLump: number;
   daysElapsed: number;
   daysInMonth: number;
 };
@@ -200,9 +202,15 @@ export function computeExpenseInsights(
     ? Math.max(now.getDate(), 1)
     : daysInMonth;
 
+  const projectedLump = kpis.byCategory.reduce((sum, item) => {
+    if (item.category !== "Loyer") return sum;
+    return sum + item.amount;
+  }, 0);
+  const variable = Math.max(0, kpis.total - projectedLump);
   const projectedTotal =
-    isCurrent && kpis.total > 0
-      ? (kpis.total / daysElapsed) * daysInMonth
+    isCurrent && (variable > 0 || projectedLump > 0)
+      ? projectedLump +
+        (variable > 0 ? (variable / daysElapsed) * daysInMonth : 0)
       : null;
 
   return {
@@ -211,6 +219,7 @@ export function computeExpenseInsights(
     swileSharePercent,
     cashSharePercent,
     projectedTotal,
+    projectedLump,
     daysElapsed,
     daysInMonth,
   };

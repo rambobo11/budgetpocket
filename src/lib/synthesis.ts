@@ -116,7 +116,9 @@ function buildExpensesSection(
     lines.push(`- **Moyenne / jour actif** : ${euro(kpis.dailyAverage)}`);
     if (insights.projectedTotal != null) {
       lines.push(
-        `- **Projection fin de mois** : ${euro(insights.projectedTotal)}`
+        `- **Si tu continues** : ${euro(insights.projectedTotal)}${
+          insights.projectedLump > 0 ? " (loyer compté une fois)" : ""
+        }`
       );
     }
     lines.push(

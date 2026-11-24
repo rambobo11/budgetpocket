@@ -278,7 +278,9 @@ export function StatsDashboard({
               ? ` · ${mask(formatEuro(kpis.dailyAverage))} / jour actif`
               : ""}
             {insights.projectedTotal != null
-              ? ` · projection ${mask(formatEuro(insights.projectedTotal))}`
+              ? ` · si tu continues ${mask(formatEuro(insights.projectedTotal))}${
+                  insights.projectedLump > 0 ? " (loyer une fois)" : ""
+                }`
               : ""}
           </p>
         </section>
