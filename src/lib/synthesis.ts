@@ -113,7 +113,9 @@ function buildExpensesSection(
     lines.push(
       `- **vs mois précédent** : ${euro(delta.delta)} (${delta.deltaPercent != null ? `${delta.deltaPercent.toFixed(1)} %` : "n/a"})`
     );
-    lines.push(`- **Moyenne / jour actif** : ${euro(kpis.dailyAverage)}`);
+    lines.push(
+      `- **Moyenne / jour${kpis.loyerTotal > 0 ? " hors loyer" : ""}** : ${euro(kpis.dailyAverage)}`
+    );
     if (insights.projectedTotal != null) {
       lines.push(
         `- **Si tu continues** : ${euro(insights.projectedTotal)}${

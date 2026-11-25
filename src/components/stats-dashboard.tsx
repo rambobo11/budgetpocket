@@ -275,7 +275,9 @@ export function StatsDashboard({
           <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
             {kpis.count} dépense{kpis.count > 1 ? "s" : ""}
             {kpis.count > 0
-              ? ` · ${mask(formatEuro(kpis.dailyAverage))} / jour actif`
+              ? ` · ${mask(formatEuro(kpis.dailyAverage))} / jour${
+                  kpis.loyerTotal > 0 ? " hors loyer" : ""
+                }`
               : ""}
             {insights.projectedTotal != null
               ? ` · si tu continues ${mask(formatEuro(insights.projectedTotal))}${

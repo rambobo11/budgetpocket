@@ -35,7 +35,9 @@ export type MonthKpis = {
   swileCount: number;
   cashCount: number;
   byCategory: CategoryBreakdown[];
+  /** Moyenne des jours où tu as dépensé, hors loyer. */
   dailyAverage: number;
+  loyerTotal: number;
 };
 
 export type MonthExpenseSummary = {
@@ -112,9 +114,18 @@ export function computeMonthKpis(expenses: Expense[]): MonthKpis {
     }))
     .sort((a, b) => b.amount - a.amount);
 
-  const uniqueDays = new Set(
-    expenses.map((e) => {
-      const zoned = toZonedTime(new Date(e.created_at), APP_TIMEZONE);
+  const loyerTotal = byCategory.reduce((sum, item) => {
+    if (item.category !== "Loyer") return sum;
+    return sum + item.amount;
+  }, 0);
+  const living = expenses.filter((expense) => expense.category !== "Loyer");
+  const livingTotal = living.reduce(
+    (sum, expense) => sum + Number(expense.amount),
+    0
+  );
+  const livingDays = new Set(
+    living.map((expense) => {
+      const zoned = toZonedTime(new Date(expense.created_at), APP_TIMEZONE);
       return format(zoned, "yyyy-MM-dd");
     })
   ).size;
@@ -129,7 +140,8 @@ export function computeMonthKpis(expenses: Expense[]): MonthKpis {
     swileCount,
     cashCount,
     byCategory,
-    dailyAverage: uniqueDays > 0 ? total / uniqueDays : 0,
+    dailyAverage: livingDays > 0 ? livingTotal / livingDays : 0,
+    loyerTotal,
   };
 }
 
@@ -202,10 +214,7 @@ export function computeExpenseInsights(
     ? Math.max(now.getDate(), 1)
     : daysInMonth;
 
-  const projectedLump = kpis.byCategory.reduce((sum, item) => {
-    if (item.category !== "Loyer") return sum;
-    return sum + item.amount;
-  }, 0);
+  const projectedLump = kpis.loyerTotal;
   const variable = Math.max(0, kpis.total - projectedLump);
   const projectedTotal =
     isCurrent && (variable > 0 || projectedLump > 0)
